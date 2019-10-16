@@ -2,10 +2,10 @@ import sys
 import os
 import io
 import re
+import bz2
 import argparse
 import logging
 import multiprocessing
-import bz2
 import subprocess
 
 from lxml import etree
@@ -13,7 +13,7 @@ from xml.etree.cElementTree import iterparse
 import ujson as json
 from unidecode import unidecode
 
-from utils import wikicorpus
+from utils import wikimarkup
 
 
 logger = logging.getLogger()
@@ -22,83 +22,84 @@ logging.root.setLevel(level=logging.INFO)
 
 
 def fast_iter(beg, end, p_xml, outpath):
-    try:
-        # Read bz2
-        bz2f = io.open(p_xml, 'rb')
-        bz2f.seek(beg)
-        if end == -1:
-            blocks = bz2f.read(-1)
-        else:
-            blocks = bz2f.read(end-beg)
+    # Using the number of bytes to seek
+    bz2f = io.open(p_xml, 'rb')
+    bz2f.seek(beg)
+    if end == -1:
+        blocks = bz2f.read(-1)
+    else:
+        blocks = bz2f.read(end - beg)
 
-        pages = '<pages>\n%s</pages>\n' % bz2.decompress(blocks).decode('utf-8')
-        if end == -1:
-            pages = pages.replace('</mediawiki>', '')
-        pages = pages.encode('utf-8') # Convert to bytes
+    # Wrap up XML
+    decompressed_blocks = bz2.decompress(blocks).decode('utf-8')
+    pages = f'<pages>\n{decompressed_blocks}</pages>\n'
+    if end == -1:
+        pages = pages.replace('</mediawiki>', '')
+    pages = pages.encode('utf-8')  # Convert back to bytes
 
-        fw = open(outpath+'.full.tmp', 'w')
-        fw_light = open(outpath+'.light.tmp', 'w')
+    with open(f'{outpath}.full.tmp', 'w') as fw, \
+         open(f'{outpath}.light.tmp', 'w') as fw_light:
         elems = etree.iterparse(io.BytesIO(pages), events=('end',), tag='page')
         for _, elem in elems:
             ns = elem.find('ns').text
-            if ns != '0': # Main page only
+            if ns != '0':  # Main page (ns == 0) only
                 continue
-
-            text = elem.find('revision').find('text').text
-            if text == None:
-                text = ''
 
             res = {
                 'id': elem.find('id').text,
                 'title': elem.find('title').text
             }
+
+            raw_markup = elem.find('revision').find('text').text
+            if raw_markup is None:
+                raw_markup = ''
+
             # Redirect
             if elem.find('redirect') is not None:
                 res['redirect'] = elem.find('redirect').attrib['title']
-                res['redirect'] = res['redirect']
             else:
                 res['redirect'] = None
 
             # Disambiguation
-            if re.search('{{disambiguation.*?}}', text.lower()):
+            if re.search('{{disambiguation.*?}}', raw_markup.lower()):
                 res['disambiguation'] = True
             else:
                 res['disambiguation'] = False
 
             # Article
             if not res['disambiguation']:
-                text_with_links = wikicorpus.remove_markup(text, res['title'])
+                text_with_links = wikimarkup.remove_markup(raw_markup, res['title'])
             else:
-                text_with_links = wikicorpus.remove_markup(text)
-            plain_text, links = wikicorpus.extract_links(text_with_links)
+                text_with_links = wikimarkup.remove_markup(raw_markup)
+            plain_text, links = wikimarkup.extract_links(text_with_links)
 
             # Sections
-            res['sections'] = wikicorpus.extract_sects(plain_text)
+            res['sections'] = wikimarkup.extract_sects(plain_text)
 
             # Categories
-            res['categories'] = wikicorpus.extract_cats(text)
+            res['categories'] = wikimarkup.extract_cats(raw_markup)
 
             # Light dumps for merging
-            # For more details, check function: merge_output(outdir)
-            fw_light.write('%s\n' % json.dumps(res, sort_keys=True))
+            # For more details, see function: merge_output(outdir)
+            fw_light.write(f'{json.dumps(res)}\n')
 
             # Full dumps
             res['article'] = plain_text
             res['links'] = links
-            fw.write('%s\n' % json.dumps(res, sort_keys=True))
+            fw.write(f'{json.dumps(res)}\n')
 
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
         del elems
-        fw.close()
 
-    except Exception:
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        msg = 'unexpected error: %s | %s | %s' % \
-              (exc_type, exc_obj, exc_tb.tb_lineno)
-        logger.error(msg)
-        logger.error('%s %s' % (beg, end))
+
+def process(beg, end, p_xml, outpath):
+    try:
+        fast_iter(beg, end, p_xml, outpath)
+    except Exception as e:
+        logger.error('unexpected error')
+        logger.exception(e)
 
 
 def load_index(pdata):
@@ -117,19 +118,18 @@ def merge_output(outdir, verbose=True):
     disambiguation = set()
     section = {}
     category = {}
-    for i in os.listdir('%s/blocks' % outdir):
+    for i in os.listdir(f'{outdir}/blocks'):
         if not i.endswith('.light.tmp'):
             continue
-        with open('%s/blocks/%s' % (outdir, i), 'r') as f:
+        with open(f'{outdir}/blocks/{i}', 'r') as f:
             for line in f:
                 d = json.loads(line)
                 try:
                     assert d['title'] not in title2id
                 except AssertionError:
                     if verbose:
-                        msg = 'duplicated title: %s | %s | %s' % \
-                            (d['title'], d['id'], title2id[d['title']])
-                        logger.warning(msg)
+                        logger.warning(f'duplicated title: {d["title"]} |'
+                                       '{d["id"]} | title2id[d["title"]]')
                     continue
                 title2id[d['title']] = d['id']
                 section[d['title']] = d['sections']
@@ -144,8 +144,7 @@ def merge_output(outdir, verbose=True):
         re_title = _redirect[title]
         if re_title in title2id:
             redirect[title] = re_title
-    msg = '# of wicked redirect links: %s' % (len(_redirect)-len(redirect))
-    logger.info(msg)
+    logger.info(f'# of wicked redirect links: {len(_redirect)-len(redirect)}')
 
     id2title = {}
     for title in title2id:
@@ -158,7 +157,7 @@ def merge_output(outdir, verbose=True):
             'title': _title
         }
 
-    article = {} # No redirect/disambiguation pages
+    article = {}  # No redirect/disambiguation pages
     for title in title2id:
         if title in redirect:
             continue
@@ -166,56 +165,56 @@ def merge_output(outdir, verbose=True):
             continue
         article[title2id[title]] = title
 
-    json.dump(redirect,
-              open('%s/redirects.json' % outdir, 'w'), indent=4)
-    json.dump(title2id,
-              open('%s/title2id.json' % outdir, 'w'), indent=4)
-    json.dump(id2title,
-              open('%s/id2title_with_redirect.json' % outdir, 'w'), indent=4)
-    json.dump(sorted(disambiguation),
-              open('%s/disambiguations.json' % outdir, 'w'), indent=4)
-    json.dump(article,
-              open('%s/articles.json' % outdir, 'w'), indent=4)
-    json.dump(section,
-              open('%s/sections.json' % outdir, 'w'), indent=4)
-    json.dump(category,
-              open('%s/categories.json' % outdir, 'w'), indent=4)
+    with open(f'{outdir}/redirect.json', 'w') as fw:
+        json.dump(redirect, fw, indent=4)
+    with open(f'{outdir}/title2id.json', 'w') as fw:
+        json.dump(title2id, fw, indent=4)
+    with open(f'{outdir}/id2title_redirected.json', 'w') as fw:
+        json.dump(id2title, fw, indent=4)
+    with open(f'{outdir}/disambiguation.json', 'w') as fw:
+        json.dump(sorted(disambiguation), fw, indent=4)
+    with open(f'{outdir}/article.json', 'w') as fw:
+        json.dump(article, fw, indent=4)
+    with open(f'{outdir}/section.json', 'w') as fw:
+        json.dump(section, fw, indent=4)
+    with open(f'{outdir}/category.json', 'w') as fw:
+        json.dump(category, fw, indent=4)
+
     return redirect, title2id, disambiguation
 
 
 def redirect_links(pdata, outpath, redirect, title2id):
-    fw = open(outpath, 'w')
-    with open(pdata, 'r') as f:
-        for line in f:
-            d = json.loads(line)
-            for link in d['links']:
-                if link['title'] in redirect:
-                    link['title'] = redirect[link['title']]
-                if link['title'] in title2id:
-                    link['id'] = title2id[link['title']]
-                else:
-                    link['id'] = None
-            fw.write('%s\n' % json.dumps(d, sort_keys=True))
-    fw.close()
+    with open(outpath, 'w') as fw:
+        with open(pdata, 'r') as f:
+            for line in f:
+                d = json.loads(line)
+                for link in d['links']:
+                    if link['title'] in redirect:
+                        link['title'] = redirect[link['title']]
+                    if link['title'] in title2id:
+                        link['id'] = title2id[link['title']]
+                    else:
+                        link['id'] = None
+                fw.write(f'{json.dumps(d)}\n')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('p_xml',
-                        help='Path to pages-articles-multistream.xml.bz')
+                        help='path to pages-articles-multistream.xml.bz')
     parser.add_argument('p_index',
-                        help='Path to pages-articles-multistream-index.txt.bz2')
+                        help='path to pages-articles-multistream-index.txt.bz2')
     parser.add_argument('outdir',
-                        help='Output directory')
+                        help='output directory')
     parser.add_argument('--nworker', '-n', default=1,
-                        help='Number of workers (default=1)')
+                        help='number of processors to use (default=1)')
     parser.add_argument('--verbose', '-v', default=False, action='store_true',
-                        help='Verbose logger')
+                        help='verbose logging')
     args = parser.parse_args()
 
     filename = os.path.split(args.p_xml)[1].replace('.xml.bz2', '')
-    lang = re.search('(\w+)wiki\-', filename).group(1).replace('_', '-')
-    os.makedirs('%s/blocks' % args.outdir, exist_ok=True)
+    lang = re.search(r'(\w+)wiki\-', filename).group(1).replace('_', '-')
+    os.makedirs(f'{args.outdir}/blocks', exist_ok=True)
 
     logger.info('loading index: %s' % args.p_index)
     bz2f_index = load_index(args.p_index)
@@ -225,37 +224,25 @@ if __name__ == '__main__':
     logger.info('# of workers: %s' % args.nworker)
     logger.info('parent pid: %s' % os.getpid())
     for i, j in zip(bz2f_index, bz2f_index[1:]):
-        outpath = '%s/blocks/b_%s-%s' % (args.outdir, i, j)
-        pool.apply_async(fast_iter, args=(i, j, args.p_xml, outpath,),)
+        outpath = f'{args.outdir}/blocks/b_{i}-{j}'
+        pool.apply_async(process, args=(i, j, args.p_xml, outpath,),)
     pool.close()
     pool.join()
 
     logger.info('merging...')
     redirect, title2id, _ = merge_output(args.outdir, verbose=args.verbose)
 
-    logger.info('revising redirect links...') # TO-DO: multi-processing
+    logger.info('revising redirect links...')  # TO-DO: multi-processing
     for i in os.listdir('%s/blocks' % args.outdir):
         if not i.endswith('.full.tmp'):
             continue
-        inpath ='%s/blocks/%s' % (args.outdir, i)
-        outpath = '%s/blocks/%s' % (args.outdir, i.split('.')[0])
+        inpath = f'{args.outdir}/blocks/{i}'
+        outpath = f'{args.outdir}/blocks/{i.split(".")[0]}'
         redirect_links(inpath, outpath, redirect, title2id)
-
-    # logger.info('splitting...')
-    # cmds = [
-    #     'rm %s/blocks/*.tmp' % outdir,
-    #     'cat %s/blocks/* > %s/blocks/merged' % (outdir, outdir),
-    #     'split -C 20m --numeric-suffixes %s/blocks/merged %s/blocks/' % \
-    #     (outdir, outdir),
-    #     'rm %s/blocks/merged' % outdir,
-    #     'rm %s/blocks/b_*' % outdir,
-    # ]
-    # for cmd in cmds:
-    #     subprocess.call(cmd, shell=True)
 
     logger.info('cleaning...')
     cmds = [
-        'rm %s/blocks/*.tmp' % args.outdir,
+        f'rm {args.outdir}/blocks/*.tmp',
     ]
     for cmd in cmds:
         subprocess.call(cmd, shell=True)

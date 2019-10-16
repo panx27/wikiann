@@ -2,6 +2,7 @@ import sys
 import os
 import subprocess
 import urllib.request
+
 import ujson as json
 
 
@@ -20,7 +21,7 @@ def download(wikisite, date, outdir):
     ]
     cmds = []
     for i in downloads:
-        cmds.append('wget %s%s%s -O %s/%s%s' % \
+        cmds.append('wget %s%s%s -O %s/%s%s' %
                     (url, wikisite, i,
                      outdir, wikisite, i.replace('latest', date)))
     for i in cmds:
@@ -28,10 +29,9 @@ def download(wikisite, date, outdir):
 
 
 def download_all(date, outdir):
-    '''
-    SITE API:
+    '''SITE API:
     https://commons.wikimedia.org/w/api.php?action=sitematrix&smtype=language&format=json
-    STATS API:
+       STATS API:
     https://en.wikipedia.org/w/api.php?action=query&meta=siteinfo&siprop=statistics&format=json
     '''
 
@@ -54,7 +54,8 @@ def download_all(date, outdir):
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print('USAGE: <wikisite (e.g., enwiki)> <date (e.g., 20180401)> <output dir>')
+        print('USAGE: <wikisite (e.g., enwiki)> <date (e.g., 20180401)>'
+              '<output dir>')
         exit()
     wikisite = sys.argv[1]
     date = sys.argv[2]

@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger()
 
 
-class WikiParser:
+class WikiAnnotator:
 
     def __init__(self, lang):
         self.__config = {
@@ -145,7 +145,7 @@ class WikiParser:
     def _unitok_init(self):
         from nltk.tokenize import sent_tokenize
         self._punkt_model = sent_tokenize
-        from utils import unitok
+        from .annotators import unitok
         self._tokenize_model = unitok.unitok_tokenize
 
         self.parse = self._parse

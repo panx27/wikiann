@@ -1,5 +1,4 @@
-'''
-Modified based on:
+'''Modified based on:
   https://github.com/RaRe-Technologies/gensim/blob/develop/gensim/corpora/wikicorpus.py
   https://github.com/wikilinks/sift/blob/master/sift/corpora/wikicorpus.py
 '''
@@ -9,35 +8,35 @@ import re
 from html.entities import name2codepoint
 
 
-# comments
+# Comments
 RE_P0 = re.compile(r'<!--.*?-->', re.DOTALL | re.UNICODE)
-# footnotes
+# Footnotes
 RE_P1 = re.compile(r'<ref([> ].*?)(</ref>|/>)', re.DOTALL | re.UNICODE)
-# links to languages
+# Links to languages
 RE_P2 = re.compile(r'(\n\[\[[a-z][a-z][\w-]*:[^:\]]+\]\])+$', re.UNICODE)
-# template
+# Template
 RE_P3 = re.compile(r'{{([^}{]*)}}', re.DOTALL | re.UNICODE)
-# template
+# Template
 RE_P4 = re.compile(r'{{([^}]*)}}', re.DOTALL | re.UNICODE)
-# remove URL, keep description
+# Remove URL, keep description
 RE_P5 = re.compile(r'\[(\w+):\/\/(.*?)(( (.*?))|())\]', re.UNICODE)
-# simplify links, keep description
+# Simplify links, keep description
 RE_P6 = re.compile(r'\[([^][]*)\|([^][]*)\]', re.DOTALL | re.UNICODE)
-# keep description of images
+# Keep description of images
 RE_P7 = re.compile(r'\n\[\[[iI]mage(.*?)(\|.*?)*\|(.*?)\]\]', re.UNICODE)
-# keep description of files
+# Keep description of files
 RE_P8 = re.compile(r'\n\[\[[fF]ile(.*?)(\|.*?)*\|(.*?)\]\]', re.UNICODE)
-# outside links
+# Outside links
 RE_P9 = re.compile(r'<nowiki([> ].*?)(</nowiki>|/>)', re.DOTALL | re.UNICODE)
-# math content
+# Math content
 RE_P10 = re.compile(r'<math([> ].*?)(</math>|/>)', re.DOTALL | re.UNICODE)
-# all other tags
+# All other tags
 RE_P11 = re.compile(r'<(.*?)>', re.DOTALL | re.UNICODE)
-# table formatting
+# Table formatting
 RE_P12 = re.compile(r'\n(({\|)|(\|-)|(\|}))(.*?)(?=\n)', re.UNICODE)
-# table cell formatting
+# Table cell formatting
 RE_P13 = re.compile(r'\n(\||\!)(.*?\|)*([^|]*?)', re.UNICODE)
-# categories
+# Categories
 RE_P14 = re.compile(r'\[\[Category:[^][]*\]\]', re.UNICODE)
 # Remove File and Image template
 RE_P15 = re.compile(r'\[\[([fF]ile:|[iI]mage)[^]]*(\]\])', re.UNICODE)
@@ -50,47 +49,46 @@ RE_QQ = re.compile(r'""(.*?)""')
 RE_SECT = re.compile(r'(==+)\s*(.*?)\s*\1')
 RE_TABLE = re.compile(r'{\|.*?\|}', re.DOTALL | re.UNICODE)
 
-# empty parenthesis
+# Empty parenthesis
 RE_EMPTY_PARENS = re.compile(r' \(\s*\)')
 # RE_EMPTY_PARENS_PLUS = re.compile(r' \([\s,;-]+\)')
 RE_EMPTY_PARENS_ZH = re.compile(r'（\s*）')
 # RE_EMPTY_PARENS_PLUS_ZH = re.compile(r'（[\s,;-，；：－]+）')
 
-# html
-RE_HTML_ENT = re.compile("&#?(\w+);")
+# HTML
+RE_HTML_ENT = re.compile(r"&#?(\w+);")
 
-# anchor link
-RE_P6 = re.compile("\[\[:?([^][]*)\|([^][]*)\]\]", re.DOTALL | re.UNICODE)
-RE_P6_ex = re.compile("\[\[:?([^][|]*)\]\]", re.DOTALL | re.UNICODE)
+# Anchor link
+RE_P6 = re.compile(r"\[\[:?([^][]*)\|([^][]*)\]\]", re.DOTALL | re.UNICODE)
+RE_P6_ex = re.compile(r"\[\[:?([^][|]*)\]\]", re.DOTALL | re.UNICODE)
 
 
 def remove_markup(text, title=None):
-    '''
-    Remove the last list (=languages)
+    '''Remove the last list (=languages)
     the wiki markup is recursive (markup inside markup etc)
     instead of writing a recursive grammar, here we deal with that by removing
     markup in a loop, starting with inner-most expressions and working
     outwards, for as long as something changes.
     '''
     text = re.sub(RE_P2, '', text)
-    text = remove_template(text) # TO-DO: template parser
-                                 # TO-DO: {{lang|xx|XXX}}
+    text = remove_template(text)  # TO-DO: template parser
+                                  # TO-DO: {{lang|xx|XXX}}
 
     # Remove table markup
-    text = re.sub(RE_TABLE, '', text) # TO-DO: table parser
+    text = re.sub(RE_TABLE, '', text)  # TO-DO: table parser
 
     # Extract captions for File: and Image: markups,
     # and append to the end of article
     text = extract_tag_content(text, [
-        re.compile('\[\[[fF]ile:(.*?)(\|[^\]\[]+?)*\|'),
-        re.compile('\[\[[iI]mage:(.*?)(\|[^\]\[]+?)*\|')
+        re.compile(r'\[\[[fF]ile:(.*?)(\|[^\]\[]+?)*\|'),
+        re.compile(r'\[\[[iI]mage:(.*?)(\|[^\]\[]+?)*\|')
     ])
 
     # Inject links for B and BI in the first paragraph
     if title:
         orig_first_para, first_para = '', ''
         for i in re.sub(RE_P0, '', text).strip().split('\n'):
-            if i and not re.match('\[\[.+\]\]$', i):
+            if i and not re.match(r'\[\[.+\]\]$', i):
                 orig_first_para, first_para = i, i
                 break
         for i in re.finditer(RE_BI, first_para):
@@ -153,8 +151,7 @@ def remove_markup(text, title=None):
 
 
 def remove_template(s):
-    """
-    Remove template wikimedia markup.
+    """Remove template wikimedia markup.
 
     Return a copy of `s` with all the wikimedia markup template removed. See
     http://meta.wikimedia.org/wiki/Help:Template for wikimedia templates
@@ -188,13 +185,12 @@ def remove_template(s):
         prev_c = c
 
     # Remove all the templates
-    return ''.join([s[end + 1:start] \
+    return ''.join([s[end + 1:start]
                     for start, end in zip(starts + [None], [-1] + ends)])
 
 
 def remove_file(s):
-    """
-    Remove the 'File:' and 'Image:' markup, keeping the file caption.
+    """Remove the 'File:' and 'Image:' markup, keeping the file caption.
 
     Return a copy of `s` with all the 'File:' and 'Image:' markup replaced by
     their corresponding captions. See http://www.mediawiki.org/wiki/Help:Images
@@ -240,7 +236,6 @@ def extract_tag_content(s, tags, include_content=True):
         parts.append(slice(last_match_end, None))
         s = ''.join([s[p] for p in parts] + ['\n'] + \
                     [s[p] if type(p) is slice else p for p in matched_parts])
-
     return s
 
 
@@ -253,7 +248,7 @@ def html_unescape(text):
                     if span[2] == "x" else chr(int(code))
             else:
                 return chr(name2codepoint[code])
-        except:
+        except BaseException:
             return span
         return span
     return re.sub(RE_HTML_ENT, replace, text)
@@ -273,7 +268,7 @@ def normalise_anchor_text(s):
     return s
 
 
-def extract_links(text): # TO-DO: nested links
+def extract_links(text):  # TO-DO: nested links
     orig_text = text
     links = []
     shift = 0
@@ -282,16 +277,16 @@ def extract_links(text): # TO-DO: nested links
         anchor = normalise_anchor_text(i.group(2))
         if not anchor:
             anchor = target
-        text = text[:i.start()-shift] + anchor + text[i.end()-shift:]
+        text = text[:i.start() - shift] + anchor + text[i.end() - shift:]
         beg = i.start() - shift
-        shift += len(i.group())-len(anchor)
+        shift += len(i.group()) - len(anchor)
         if not target:
             continue
         links.append({
             'title': target,
             'text': anchor,
             'start': beg,
-            'end': beg+len(anchor)
+            'end': beg + len(anchor)
         })
     for i in links:
         if text[i['start']:i['end']] != i['text']:
@@ -300,7 +295,7 @@ def extract_links(text): # TO-DO: nested links
 
 
 def extract_cats(text):
-    re_cat = '\[\[Category:([^\|\]]+)'
+    re_cat = r'\[\[Category:([^\|\]]+)'
     cats = []
     error_count = 0
     for i in re.finditer(RE_P14, text):
