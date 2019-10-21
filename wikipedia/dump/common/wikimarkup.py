@@ -64,12 +64,12 @@ RE_P6_ex = re.compile(r"\[\[:?([^][|]*)\]\]", re.DOTALL | re.UNICODE)
 
 
 def remove_markup(text, title=None):
-    '''Remove the last list (=languages)
+    """Remove the last list (=languages)
     the wiki markup is recursive (markup inside markup etc)
     instead of writing a recursive grammar, here we deal with that by removing
     markup in a loop, starting with inner-most expressions and working
     outwards, for as long as something changes.
-    '''
+    """
     text = re.sub(RE_P2, '', text)
     text = remove_template(text)  # TO-DO: template parser
                                   # TO-DO: {{lang|xx|XXX}}

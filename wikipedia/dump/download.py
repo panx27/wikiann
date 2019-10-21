@@ -29,12 +29,11 @@ def download(wikisite, date, outdir):
 
 
 def download_all(date, outdir):
-    '''SITE API:
+    """SITE API:
     https://commons.wikimedia.org/w/api.php?action=sitematrix&smtype=language&format=json
        STATS API:
     https://en.wikipedia.org/w/api.php?action=query&meta=siteinfo&siprop=statistics&format=json
-    '''
-
+    """
     url = 'https://commons.wikimedia.org/w/api.php?action=sitematrix&smtype=language&format=json'
     request = urllib.request.Request(url)
     result = urllib.request.urlopen(request).read()

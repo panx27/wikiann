@@ -14,18 +14,6 @@ logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
 
 
-''' From langlinks.sql.gz
-
-CREATE TABLE `langlinks` (
-  `ll_from` int(8) unsigned NOT NULL DEFAULT '0',
-  `ll_lang` varbinary(20) NOT NULL DEFAULT '',
-  `ll_title` varbinary(255) NOT NULL DEFAULT '',
-  UNIQUE KEY `ll_from` (`ll_from`,`ll_lang`),
-  KEY `ll_lang` (`ll_lang`,`ll_title`)
-)
-'''
-
-
 def normalize_title(title):
     # Remove backslash
     title = title.replace('\\', '')
@@ -35,6 +23,16 @@ def normalize_title(title):
 
 
 def process(p_langlink, tgt_lang, id2title, outdir, split=True):
+    """From langlinks.sql.gz
+
+    CREATE TABLE `langlinks` (
+      `ll_from` int(8) unsigned NOT NULL DEFAULT '0',
+      `ll_lang` varbinary(20) NOT NULL DEFAULT '',
+      `ll_title` varbinary(255) NOT NULL DEFAULT '',
+      UNIQUE KEY `ll_from` (`ll_from`,`ll_lang`),
+      KEY `ll_lang` (`ll_lang`,`ll_title`)
+    )
+    """
     mapping = defaultdict(list)
     errors = []
 
