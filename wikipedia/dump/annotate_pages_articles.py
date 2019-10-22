@@ -8,7 +8,7 @@ import multiprocessing
 import ujson as json
 
 from common import utils
-from common.wikiannotator import WikiAnnotator
+from common import wikiann
 
 
 logger = logging.getLogger()
@@ -31,7 +31,7 @@ def process_one(line, verbose=True):
     }
 
     text = d['article']
-    sentences = annotator.parse(text, links=d['links'])
+    sentences = annotator.annotate(text, links=d['links'])
     for sent in sentences:
         matched_links = []
         for link in d['links']:
@@ -39,15 +39,13 @@ def process_one(line, verbose=True):
                                  (sent['start'], sent['end'])):
                 link['start'] -= sent['start']
                 link['end'] -= sent['start']
-                link['tokens'] = annotator.tokenizer(link['text'],
-                                                     link['start'])
+                link['tokens'] = annotator.tokenize(link['text'], link['start'])
                 try:
                     assert link['tokens'][0]['start'] == link['start']
                     assert link['tokens'][-1]['end'] == link['end']
                 except AssertionError:
                     if verbose:
-                        msg = 'wicked link: (%s, %s)' % (link, d['title'])
-                        logger.warning(msg)
+                        logger.warning(f"wicked link: ({link}, {d['title']})")
                     continue
                 matched_links.append(link)
                 count['matched_links'] += 1
@@ -58,16 +56,14 @@ def process_one(line, verbose=True):
         assert len(d['links']) == count['matched_links']
     except AssertionError:
         if verbose:
-            msg = 'unmatched links: %s %s. expect: %s got: %s' % \
-                (d['id'], d['title'], len(d['links']), count['matched_links'])
-            logger.warning(msg)
+            logger.warning(f"{d['id']} {d['title']} got unmatched links, expect"
+                           ": {len(d['links'])} got: {count['matched_links']}")
             all_matched_links = set()
             for sent in sentences:
                 for link in sent['links']:
                     all_matched_links.add(link['text'])
             links = set([i['text'] for i in d['links']])
-            msg = 'unmatched links: %s' % (links - all_matched_links)
-            logger.warning(msg)
+            logger.warning(f'unmatched links: {links - all_matched_links}')
 
     return res
 
@@ -77,8 +73,8 @@ def process_block(inpath, outpath, verbose=True):
         for line in f:
             res = process_one(line, verbose=verbose)
             if res['sentences']:
-                fw.write('%s\n' % json.dumps(res, sort_keys=True))
-            del res
+                fw.write(json.dumps(res, sort_keys=True) + '\n')
+            del res # ?????????
 
 
 def process(inpath, outpath, verbose=True):
@@ -106,13 +102,13 @@ if __name__ == '__main__':
 
     os.makedirs(args.outdir, exist_ok=True)
 
-    # annotator should be a global variable, each processor will make a copy
-    annotator = WikiAnnotator(args.lang)
+    # Must be a global variable, each worker will make a copy
+    annotator = wikiann.get_annotator(args.lang)
 
     logger.info('processing...')
     pool = multiprocessing.Pool(processes=int(args.nworker))
-    logger.info('# of workers: %s' % args.nworker)
-    logger.info('parent pid: %s' % os.getpid())
+    logger.info(f'# of workers: {args.nworker}')
+    logger.info(f'parent pid: {os.getpid()}')
     for i in sorted(os.listdir(args.indir),
                     key=lambda x: os.path.getsize(f'{args.indir}/{x}'),
                     reverse=True):

@@ -24,10 +24,9 @@ class UnitokAnnotator(Annotator):
         return punkt(text)
 
     def _tokenize(self, text, shift=0):
-        print(text)
         toks = []
         index = 0
-        for tok in self.unitok_tokenize(text):
+        for tok in self._unitok_tokenize(text):
             if tok.strip() == '':
                 index += len(tok)
                 continue
@@ -42,7 +41,7 @@ class UnitokAnnotator(Annotator):
         return toks
 
     @staticmethod
-    def unitok_tokenize(data):
+    def _unitok_tokenize(data):
         toks = []
         for offset, char in enumerate(data):
             cc = ud.category(char)

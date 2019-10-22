@@ -39,7 +39,8 @@ class Annotator:
                         'tokens': toks,
                         'start': start,
                         'end': end,
-                        'nlp': nlp_results,
+                        # 'nlp': nlp_results,
+                        'processed': nlp_results,
                         'paragraph_index': paragraph_count
                     })
             paragraph_count += 1
