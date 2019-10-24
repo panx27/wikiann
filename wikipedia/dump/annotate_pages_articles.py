@@ -18,13 +18,13 @@ logging.root.setLevel(level=logging.INFO)
 
 def process_one(line, verbose=True):
     d = json.loads(line)
-    res = {
+    result = {
         'id': d['id'],
         'title': d['title'],
         'sentences': []
     }
     if d['redirect']:
-        return res
+        return result
 
     count = {
         'matched_links': 0
@@ -50,7 +50,7 @@ def process_one(line, verbose=True):
                 matched_links.append(link)
                 count['matched_links'] += 1
         sent['links'] = matched_links
-    res['sentences'] = sentences
+    result['sentences'] = sentences
 
     try:
         assert len(d['links']) == count['matched_links']
@@ -65,16 +65,15 @@ def process_one(line, verbose=True):
             links = set([i['text'] for i in d['links']])
             logger.warning(f'unmatched links: {links - all_matched_links}')
 
-    return res
+    return result
 
 
 def process_block(inpath, outpath, verbose=True):
     with open(outpath, 'w') as fw, open(inpath, 'r') as f:
         for line in f:
-            res = process_one(line, verbose=verbose)
-            if res['sentences']:
-                fw.write(json.dumps(res, sort_keys=True) + '\n')
-            del res # ?????????
+            result = process_one(line, verbose=verbose)
+            if result['sentences']:
+                fw.write(json.dumps(result, sort_keys=True) + '\n')
 
 
 def process(inpath, outpath, verbose=True):
