@@ -11,9 +11,8 @@ import subprocess
 from lxml import etree
 from xml.etree.cElementTree import iterparse
 import ujson as json
-from unidecode import unidecode
 
-from utils import wikimarkup
+from common import wikimarkup
 
 
 logger = logging.getLogger()
@@ -128,8 +127,8 @@ def merge_output(outdir, verbose=True):
                     assert d['title'] not in title2id
                 except AssertionError:
                     if verbose:
-                        logger.warning(f'duplicated title: {d["title"]} |'
-                                       '{d["id"]} | title2id[d["title"]]')
+                        logger.warning(f'duplicated title: {d["title"]} | '
+                                       f'{d["id"]} | {title2id[d["title"]]}')
                     continue
                 title2id[d['title']] = d['id']
                 section[d['title']] = d['sections']

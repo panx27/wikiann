@@ -6,8 +6,8 @@ import urllib.request
 import ujson as json
 
 
-def download(wikisite, date, outdir):
-    outdir = '%s/%s/%s-%s' % (outdir, date, wikisite, date)
+def download(wikisite, label, outdir):
+    outdir = '%s/%s/%s-%s' % (outdir, label, wikisite, label)
     os.makedirs(outdir, exist_ok=True)
     url = 'https://dumps.wikimedia.org/%s/latest/' % wikisite
     downloads = [
@@ -23,12 +23,12 @@ def download(wikisite, date, outdir):
     for i in downloads:
         cmds.append('wget %s%s%s -O %s/%s%s' %
                     (url, wikisite, i,
-                     outdir, wikisite, i.replace('latest', date)))
+                     outdir, wikisite, i.replace('latest', label)))
     for i in cmds:
         subprocess.call(i, shell=True)
 
 
-def download_all(date, outdir):
+def download_all(label, outdir):
     """SITE API:
     https://commons.wikimedia.org/w/api.php?action=sitematrix&smtype=language&format=json
        STATS API:
@@ -48,18 +48,18 @@ def download_all(date, outdir):
         except IndexError:
             continue
         print(lang, dbname)
-        download(dbname, date, outdir)
+        download(dbname, label, outdir)
 
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print('USAGE: <wikisite (e.g., enwiki)> <date (e.g., 20180401)>'
+        print('USAGE: <wikisite (e.g., enwiki)> <label (e.g., 20180401)> '
               '<output dir>')
         exit()
     wikisite = sys.argv[1]
-    date = sys.argv[2]
+    label = sys.argv[2]
     outdir = sys.argv[3]
     if wikisite == 'all':
-        download_all(date, outdir)
+        download_all(label, outdir)
     else:
-        download(wikisite, date, outdir)
+        download(wikisite, label, outdir)
