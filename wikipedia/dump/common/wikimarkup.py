@@ -311,3 +311,20 @@ def extract_sects(text):
     for i in re.finditer(RE_SECT, text):
         sects.append((i.group(), (i.start(), i.end())))
     return sects
+
+
+def extract_infobox(text):
+    m = re.search('{{infobox', text, re.I)
+    if m:
+        result = ''
+        left = 0
+        right = 0
+        for c in text[m.start():]:
+            if c == '{':
+                left += 1
+            elif c == '}':
+                right += 1
+            result += c
+            if left == right:
+                return result
+    return None

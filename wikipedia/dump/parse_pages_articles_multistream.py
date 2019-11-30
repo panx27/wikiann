@@ -78,6 +78,9 @@ def fast_iter(beg, end, p_xml, outpath):
             # Categories
             res['categories'] = wikimarkup.extract_cats(raw_markup)
 
+            # Infobox
+            res['infobox'] = wikimarkup.extract_infobox(raw_markup)
+
             # Light dumps for merging
             # For more details, see function: merge_output(outdir)
             fw_light.write(f'{json.dumps(res)}\n')
@@ -117,6 +120,7 @@ def merge_output(outdir, verbose=True):
     disambiguation = set()
     section = {}
     category = {}
+    infobox = {}
     for i in os.listdir(f'{outdir}/blocks'):
         if not i.endswith('.light.tmp'):
             continue
@@ -133,6 +137,7 @@ def merge_output(outdir, verbose=True):
                 title2id[d['title']] = d['id']
                 section[d['title']] = d['sections']
                 category[d['title']] = d['categories']
+                infobox[d['title']] = d['infobox']
                 if d['redirect'] is not None:
                     _redirect[d['title']] = d['redirect']
                 if d['disambiguation']:
@@ -178,6 +183,8 @@ def merge_output(outdir, verbose=True):
         json.dump(section, fw, indent=4)
     with open(f'{outdir}/category.json', 'w') as fw:
         json.dump(category, fw, indent=4)
+    with open(f'{outdir}/infobox.json', 'w') as fw:
+        json.dump(infobox, fw)
 
     return redirect, title2id, disambiguation
 
