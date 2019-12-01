@@ -57,7 +57,7 @@ def process_one(line, verbose=True):
     except AssertionError:
         if verbose:
             logger.warning(f"{d['id']} {d['title']} got unmatched links, expect"
-                           ": {len(d['links'])} got: {count['matched_links']}")
+                           f": {len(d['links'])} got: {count['matched_links']}")
             all_matched_links = set()
             for sent in sentences:
                 for link in sent['links']:
