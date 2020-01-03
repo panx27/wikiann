@@ -58,7 +58,7 @@ def import_sents(pdata, name):
                     sent['source_title_ll'] = title_ll
                 sent['_chunk_id'] = name
                 sent['_id'] = '%s_%s' % (d['id'], n_sent)
-                words = [x['text'] for x in sent['tokens']]
+                words = [x['text'].lower() for x in sent['tokens']]
                 sent['keywords'] = list(set(words))
                 sents.append(sent)
     if sents:
@@ -66,33 +66,6 @@ def import_sents(pdata, name):
         # but it requires larger RAM usage, reduce the size of `sents`
         # if you don't have enough RAM
         collection.insert_many(sents)
-
-        # # Indexing
-        # collection.create_index('_chunk_id')
-        # collection.create_index('source_id')
-        # collection.create_index('source_title')
-        # collection.create_index('source_id_ll', sparse=True)
-        # collection.create_index('source_title_ll', sparse=True)
-        # collection.create_index('start')
-        # collection.create_index('end')
-        # collection.create_index('ids_len')
-        # collection.create_index('ids_ll_len')
-        # key = [('ids', 1)]
-        # pfe = {'ids': {'$exists': True}}
-        # collection.create_index(key, partialFilterExpression=pfe)
-        # key = [('ids_ll', 1)]
-        # pfe = {'ids_ll': {'$exists': True}}
-        # collection.create_index(key, partialFilterExpression=pfe)
-        # key = [('titles', 1)]
-        # pfe = {'titles': {'$exists': True}}
-        # collection.create_index(key, partialFilterExpression=pfe)
-        # key = [('titles_ll', 1)]
-        # pfe = {'titles_ll': {'$exists': True}}
-        # collection.create_index(key, partialFilterExpression=pfe)
-        # key = [('source_id', 1), ('ids', 1)]
-        # pfe = {'ids': {'$exists': True}}
-        # collection.create_index(key, partialFilterExpression=pfe)
-
     client.close()
 
 
