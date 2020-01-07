@@ -58,7 +58,8 @@ def import_sents(pdata, name):
                     sent['source_title_ll'] = title_ll
                 sent['_chunk_id'] = name
                 sent['_id'] = '%s_%s' % (d['id'], n_sent)
-                words = [x['text'].lower() for x in sent['tokens']]
+                # words = [x['text'].lower() for x in sent['tokens']]
+                words = [x['text'] for x in sent['tokens']]
                 sent['keywords'] = list(set(words))
                 sents.append(sent)
     if sents:
