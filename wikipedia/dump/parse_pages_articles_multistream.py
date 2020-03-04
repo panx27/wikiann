@@ -121,9 +121,6 @@ def merge_output(outdir, verbose=True):
     _redirect = {}
     title2id = {}
     disambiguation = set()
-    section = {}
-    category = {}
-    infobox = {}
     for i in os.listdir(f'{outdir}/blocks'):
         if not i.endswith('.light.tmp'):
             continue
@@ -138,9 +135,6 @@ def merge_output(outdir, verbose=True):
                                        f'{d["id"]} | {title2id[d["title"]]}')
                     continue
                 title2id[d['title']] = d['id']
-                section[d['title']] = d['sections']
-                category[d['title']] = d['categories']
-                infobox[d['title']] = d['infobox']
                 if d['redirect'] is not None:
                     _redirect[d['title']] = d['redirect']
                 if d['disambiguation']:
@@ -164,7 +158,7 @@ def merge_output(outdir, verbose=True):
             'title': _title
         }
 
-    article = {}  # No redirect/disambiguation pages
+    article = {}  # Non redirect and disambiguation pages
     for title in title2id:
         if title in redirect:
             continue
@@ -182,12 +176,6 @@ def merge_output(outdir, verbose=True):
         json.dump(sorted(disambiguation), fw, indent=4)
     with open(f'{outdir}/article.json', 'w') as fw:
         json.dump(article, fw, indent=4)
-    with open(f'{outdir}/section.json', 'w') as fw:
-        json.dump(section, fw, indent=4)
-    with open(f'{outdir}/category.json', 'w') as fw:
-        json.dump(category, fw, indent=4)
-    with open(f'{outdir}/infobox.json', 'w') as fw:
-        json.dump(infobox, fw)
 
     return redirect, title2id, disambiguation
 
