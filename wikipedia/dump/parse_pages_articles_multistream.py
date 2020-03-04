@@ -65,9 +65,16 @@ def fast_iter(beg, end, p_xml, outpath):
             else:
                 res['disambiguation'] = False
 
+            # Light dumps (in terms of file size) containing only
+            # `id`, `title`, `redirect`, `disambiguation`,
+            # for redirection purpose.
+            # For more details, see function: merge_output(outdir)
+            fw_light.write(f'{json.dumps(res)}\n')
+
             # Article
             if not res['disambiguation']:
-                text_with_links = wikimarkup.remove_markup(raw_markup, res['title'])
+                text_with_links = wikimarkup.remove_markup(raw_markup,
+                                                           res['title'])
             else:
                 text_with_links = wikimarkup.remove_markup(raw_markup)
             plain_text, links = wikimarkup.extract_links(text_with_links)
@@ -80,10 +87,6 @@ def fast_iter(beg, end, p_xml, outpath):
 
             # Infobox
             res['infobox'] = wikimarkup.extract_infobox(raw_markup)
-
-            # Light dumps for merging
-            # For more details, see function: merge_output(outdir)
-            fw_light.write(f'{json.dumps(res)}\n')
 
             # Full dumps
             res['article'] = plain_text
