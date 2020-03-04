@@ -1,7 +1,7 @@
-'''Modified based on:
+"""Modified based on:
   https://github.com/RaRe-Technologies/gensim/blob/develop/gensim/corpora/wikicorpus.py
   https://github.com/wikilinks/sift/blob/master/sift/corpora/wikicorpus.py
-'''
+"""
 
 
 import re
@@ -309,7 +309,11 @@ def extract_cats(text):
 def extract_sects(text):
     sects = []
     for i in re.finditer(RE_SECT, text):
-        sects.append((i.group(), (i.start(), i.end())))
+        sects.append({
+            'text': i.group(),
+            'start': i.start(),
+            'end': i.end()
+        })
     return sects
 
 
