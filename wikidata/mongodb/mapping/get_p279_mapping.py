@@ -38,12 +38,12 @@ if __name__ == '__main__':
     collection = client[db_name][collection_name]
 
     query = {'properties': {'$in': ['P279']}}
-    trans = {
+    project = {
         'id': 1,
         '_id': 0,
         'claims.P279.mainsnak.datavalue.value.id': 1,
     }
-    res = collection.find(query, trans)
+    res = collection.find(query, project)
     # stats = res.explain()["executionStats"]
     # pprint.pprint(stats)
     # total = stats['nReturned']

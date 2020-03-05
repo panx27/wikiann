@@ -39,8 +39,8 @@ if __name__ == '__main__':
 
     # Do not use {'$exists': True}
     query = {'sitelinks.enwiki.title': {'$regex': '.+'}}
-    trans = {'sitelinks.enwiki.title': 1, 'id': 1, '_id': 0}
-    res = collection.find(query, trans)
+    project = {'sitelinks.enwiki.title': 1, 'id': 1, '_id': 0}
+    res = collection.find(query, project)
     # stats = res.explain()["executionStats"]
     # pprint.pprint(stats)
     # total = stats['nReturned']

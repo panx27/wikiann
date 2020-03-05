@@ -39,8 +39,8 @@ if __name__ == '__main__':
 
     # Do not use {'$exists': True}
     query = {'labels.en.value': {'$regex': '.+'}}
-    trans = {'labels.en.value': 1, 'id': 1, '_id': 0}
-    res = collection.find(query, trans)
+    project = {'labels.en.value': 1, 'id': 1, '_id': 0}
+    res = collection.find(query, project)
     # stats = res.explain()["executionStats"]
     # pprint.pprint(stats)
     # total = stats['nReturned']
