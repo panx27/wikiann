@@ -1,6 +1,7 @@
 tmp/
 scripts/
 misc/
+wikipedia/mongodb/fetch/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
