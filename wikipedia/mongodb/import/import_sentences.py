@@ -56,15 +56,17 @@ def import_sents(pdata, name):
                     title_ll, id_ll = langlinks[sent['source_title']]
                     sent['source_id_ll'] = id_ll
                     sent['source_title_ll'] = title_ll
-                sent['_chunk_id'] = name
-                sent['_id'] = '%s_%s' % (d['id'], n_sent)
                 # words = [x['text'].lower() for x in sent['tokens']]
                 words = [x['text'] for x in sent['tokens']]
                 sent['keywords'] = list(set(words))
+
+                sent['_chunk_id'] = name
+                sent['_id'] = '%s_%s' % (d['id'], n_sent)
                 sents.append(sent)
     if sents:
         # insert_many is much faster than insert_one,
-        # but it requires larger RAM usage, reduce the size of `sents`
+        # but it requires larger RAM usage,
+        # try to reduce the size of the list,
         # if you don't have enough RAM
         collection.insert_many(sents)
     client.close()
@@ -119,7 +121,7 @@ if __name__ == '__main__':
 
     logger.info('db name: %s' % db_name)
     logger.info('collection name: %s' % collection_name)
-    logger.info('drop collection')
+    logger.info('drop old collection')
     client = MongoClient(host=host, port=port)
     client[db_name].drop_collection(collection_name)
 

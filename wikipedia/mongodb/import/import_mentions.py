@@ -57,7 +57,7 @@ if __name__ == '__main__':
     logger.info('db name: %s' % db_name)
     logger.info('collection name: %s' % collection_name)
     client = MongoClient(host=host, port=port)
-    logger.info('drop collection')
+    logger.info('drop old collection')
     client[db_name].drop_collection(collection_name)
 
     collection = client[db_name][collection_name]
