@@ -36,17 +36,17 @@ if __name__ == '__main__':
     logger.info('indexing: title')
     collection.create_index('title')
 
-    logger.info('indexing: id_ll')
-    collection.create_index('source_id_ll', sparse=True)
+    logger.info('indexing: redirect')
+    collection.create_index('redirect')
 
-    logger.info('indexing: title_ll')
-    collection.create_index('source_title_ll', sparse=True)
+    logger.info('indexing: disambiguation')
+    collection.create_index('disambiguation')
 
-    logger.info('indexing: len_links')
-    collection.create_index('len_links')
+    logger.info('indexing: categories')
+    collection.create_index('categories')
 
-    logger.info('indexing: len_links_ll')
-    collection.create_index('len_links_ll')
+    logger.info('indexing: sections.text')
+    collection.create_index('sections.text')
 
     logger.info('indexing: links.id')
     collection.create_index('links.id')
@@ -56,9 +56,6 @@ if __name__ == '__main__':
 
     logger.info('indexing: links.text')
     collection.create_index('links.text')
-
-    logger.info('indexing: tokens.text')
-    collection.create_index('tokens.text')
 
     client.close()
     logger.info('done.')

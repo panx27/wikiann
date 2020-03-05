@@ -13,47 +13,28 @@ logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
 
 
-def import_sents(pdata, name):
+def import_pages(pdata, name):
     client = MongoClient(host=host, port=port)
     collection = client[db_name][collection_name]
-    sents = []
+    pages = []
     with open(pdata, 'r') as f:
         for line in f:
             d = json.loads(line)
-            for n_sent, sent in enumerate(d['sentences']):
-                sent['len_links'] = len(sent['links'])
-
-                if langlinks:
-                    sent['len_links_ll'] = 0
-                    for n, i in enumerate(sent['links']):
-                        if i['title'] in langlinks:
-                            title_ll, id_ll = langlinks[i['title']]
-                            sent['links'][n]['id_ll'] = id_ll
-                            sent['links'][n]['title_ll'] = title_ll
-                            sent['len_links_ll'] += 1
-
-                sent['id'] = d['id']
-                sent['title'] = d['title']
-                if sent['title'] in langlinks:
-                    title_ll, id_ll = langlinks[sent['title']]
-                    sent['id_ll'] = id_ll
-                    sent['title_ll'] = title_ll
-
-                sent['_chunk_id'] = name
-                sent['_id'] = f'{d["id"]}_{n_sent}'
-                sents.append(sent)
-    if sents:
+            d['_chunk_id'] = name
+            d['_id'] = d['id']
+            pages.append(d)
+    if pages:
         # insert_many is much faster than insert_one,
         # but it requires larger RAM usage,
         # try to reduce the size of the list,
         # if you don't have enough RAM
-        collection.insert_many(sents)
+        collection.insert_many(pages)
     client.close()
 
 
 def process(pdata, name):
     try:
-        import_sents(pdata, name)
+        import_pages(pdata, name)
     except Exception as e:
         logger.error('unexpected error')
         logger.error(pdata)
@@ -62,13 +43,11 @@ def process(pdata, name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('indir', help='Input directory (blocks.pp)')
+    parser.add_argument('indir', help='Input directory (blocks)')
     parser.add_argument('host', help='MongoDB host')
     parser.add_argument('port', help='MongoDB port')
     parser.add_argument('db_name', help='Database name')
     parser.add_argument('collection_name', help='Collection name')
-    parser.add_argument('--planglinks', '-p', default=None,
-                        help='Path to langlinks mapping')
     parser.add_argument('--nworker', '-n', default=1,
                         help='Number of workers (default=1)')
     args = parser.parse_args()
@@ -79,27 +58,6 @@ if __name__ == '__main__':
     nworker = int(args.nworker)
     db_name = args.db_name
     collection_name = args.collection_name
-    planglinks = args.planglinks
-
-    langlinks = {}
-    if 'en' not in db_name or 'en' not in collection_name:
-        if not planglinks:
-            msg = 'You may want to add langlinks for non-English languages.'
-            logger.warning(msg)
-    if planglinks:
-        count = {
-            'duplicate': 0,
-        }
-        logger.info('loading langlinks...')
-        tmp = json.load(open(planglinks))
-        for i in tmp:
-            if i['title'] in langlinks:
-                count['duplicate'] += 1
-                continue
-            langlinks[i['title']] = (i['title_ll'], i['id_ll'])
-        logger.warning(f'# of duplicate langlinks: {count["duplicate"]}')
-        logger.info('done.')
-        del tmp
 
     logger.info(f'db name: {db_name}')
     logger.info(f'collection name: {collection_name}')
