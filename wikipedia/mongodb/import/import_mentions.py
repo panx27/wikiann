@@ -54,8 +54,8 @@ if __name__ == '__main__':
     data = json.load(open(pdata))
     logger.info('done.')
 
-    logger.info('db name: %s' % db_name)
-    logger.info('collection name: %s' % collection_name)
+    logger.info(f'db name: {db_name}')
+    logger.info(f'collection name: {collection_name}')
     client = MongoClient(host=host, port=port)
     logger.info('drop old collection')
     client[db_name].drop_collection(collection_name)
