@@ -1,4 +1,6 @@
-# wikidata-dump-processor
+# Wikimedia dumps processor
+
+## Wikidata
 Import Wikidata [json dump](https://dumps.wikimedia.org/wikidatawiki/entities/) (.json.bz2) into [Mongodb](https://www.mongodb.com/) and create index
 
 - Index:
