@@ -57,5 +57,10 @@ if __name__ == '__main__':
     logger.info('indexing: links.text')
     collection.create_index('links.text')
 
+    logger.info('indexing: { links.title: 1, title: 1 }')
+    key = [('links.title', 1), ('title', 1)]
+    pfe = {'links.title': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
+
     client.close()
     logger.info('done.')
