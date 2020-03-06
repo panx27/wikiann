@@ -163,7 +163,7 @@ if __name__ == '__main__':
     count = defaultdict(int)
     nworker = int(args.nworker)
     pool = multiprocessing.Pool(processes=nworker)
-    logger.info('# of workers: %s' % nworker)
+    logger.info(f'# of workers: {nworker}')
     logger.info('processing...')
     results = [] # TO-DO: occupied too large RAM
     for i in os.listdir(args.indir):
@@ -184,12 +184,13 @@ if __name__ == '__main__':
 
     for i in count:
         logger.info(f'{i}: {count[i]}')
+    del results
 
     threshold = int(args.threshold)
     if threshold > 0:
         mention2kbid = filter_low_frequent_entities(mention2kbid, threshold)
 
-    logger.info('converting kbid2mention..')
+    logger.info('converting kbid2mention...')
     kbid2mention = get_kbid2mention(mention2kbid)
     logger.info('done.')
 
