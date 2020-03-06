@@ -184,7 +184,6 @@ if __name__ == '__main__':
 
     for i in count:
         logger.info(f'{i}: {count[i]}')
-    del results
 
     threshold = int(args.threshold)
     if threshold > 0:
