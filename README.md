@@ -26,7 +26,7 @@ Import Wikidata [json dump](https://dumps.wikimedia.org/wikidatawiki/entities/) 
 - Performance: ~3 hours for importing, ~1 hour for indexing (`--nworker 12`, `--chunk_size 10000`, based on 20180717 dump (25 GB))
 
 
-## Quickstart
+### Quickstart
 Step 1: import
 
     usage: import.py [-h] [--chunk_size CHUNK_SIZE] [--nworker NWORKER]
@@ -56,5 +56,5 @@ Step 2: index
       collection_name  Collection name
       
 
-## Miscellaneous
+### Miscellaneous
 - If you get `errno:24 Too many open files` error, try to increase system limits. For example, in Linux, you can run `ulimit -n 64000` in the **console running mongod**.
