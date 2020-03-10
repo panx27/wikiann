@@ -81,31 +81,31 @@ if __name__ == '__main__':
     collection_name_imex = 'kg'
 
     client = MongoClient(host=host, port=port)
-    # logger.info(f'db name: {db_name}')
-    # logger.info(f'collection to read: {collection_name}')
-    # collection = client[db_name][collection_name]
-    # logger.info(f'collection to import: {collection_name_imex}')
-    # logger.info('drop old collection')
-    # client[db_name].drop_collection(collection_name_imex)
+    logger.info(f'db name: {db_name}')
+    logger.info(f'collection to read: {collection_name}')
+    collection = client[db_name][collection_name]
+    logger.info(f'collection to import: {collection_name_imex}')
+    logger.info('drop old collection')
+    client[db_name].drop_collection(collection_name_imex)
 
-    # logger.info('importing...')
-    # pool = multiprocessing.Pool(processes=nworker)
-    # logger.info(f'# of workers: {nworker}')
-    # logger.info(f'chunk size: {chunk_size}')
-    # logger.info(f'parent pid: {os.getpid()}')
+    logger.info('importing...')
+    pool = multiprocessing.Pool(processes=nworker)
+    logger.info(f'# of workers: {nworker}')
+    logger.info(f'chunk size: {chunk_size}')
+    logger.info(f'parent pid: {os.getpid()}')
 
     # query = {'sitelinks.enwiki.title': {'$regex': '.+'}}
-    # logger.info(f'# of entries: {collection.count_documents(query)}')
-    # res = collection.find(query, {'_id': 0, 'id': 1})
+    query = {'id': {'$regex': '.+'}}
+    logger.info(f'# of entries: {collection.count_documents(query)}')
+    res = collection.find(query, {'_id': 0, 'id': 1})
 
-    # for chunk in iter(lambda: tuple(islice(res, chunk_size)), ()):
-    #     pool.apply_async(process, args=(chunk,),)
-    # pool.close()
-    # pool.join()
+    for chunk in iter(lambda: tuple(islice(res, chunk_size)), ()):
+        pool.apply_async(process, args=(chunk,),)
+    pool.close()
+    pool.join()
 
     logger.info('indexing...')
     collection_imex = client[db_name][collection_name_imex]
-
     logger.info('indexing: s')
     collection_imex.create_index('s')
     logger.info('indexing: p')
