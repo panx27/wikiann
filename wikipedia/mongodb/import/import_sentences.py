@@ -62,7 +62,7 @@ def process(pdata, name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('indir', help='Input directory (blocks.pp)')
+    parser.add_argument('indir', help='Input directory (blocks.ann)')
     parser.add_argument('host', help='MongoDB host')
     parser.add_argument('port', help='MongoDB port')
     parser.add_argument('db_name', help='Database name')
