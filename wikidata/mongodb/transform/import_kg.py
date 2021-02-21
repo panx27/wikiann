@@ -64,7 +64,9 @@ if __name__ == '__main__':
     parser.add_argument('host', help='MongoDB host')
     parser.add_argument('port', help='MongoDB port')
     parser.add_argument('db_name', help='Database name')
-    parser.add_argument('collection_name', help='Collection name')
+    parser.add_argument('collection_name_read', help='Collection name to read')
+    parser.add_argument('collection_name_import',
+                        help='Collection name to import')
     parser.add_argument('--chunk_size', '-c', default=10000,
                         help='Chunk size (default=10000, '
                         'RAM usage depends on chunk size)')
@@ -75,10 +77,10 @@ if __name__ == '__main__':
     host = args.host
     port = int(args.port)
     db_name = args.db_name
-    collection_name = args.collection_name
+    collection_name = args.collection_name_read
     nworker = int(args.nworker)
     chunk_size = int(args.chunk_size)
-    collection_name_imex = 'kg'
+    collection_name_imex = args.collection_name_import
 
     client = MongoClient(host=host, port=port)
     logger.info(f'db name: {db_name}')
