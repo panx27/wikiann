@@ -88,6 +88,9 @@ def fast_iter(beg, end, p_xml, outpath):
             # Infobox
             res['infobox'] = wikimarkup.extract_infobox(raw_markup)
 
+            # Reference
+            res['refs'] = wikimarkup.extract_refs(raw_markup)
+
             # Full dumps
             res['article'] = plain_text
             res['links'] = links

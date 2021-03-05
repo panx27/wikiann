@@ -332,3 +332,10 @@ def extract_infobox(text):
             if left == right:
                 return result
     return None
+
+
+def extract_refs(text): # TO-DO: offset
+    refs = []
+    for i in re.findall(RE_P1, text):
+        refs.append('<ref%s</ref>' % i[0])
+    return refs
