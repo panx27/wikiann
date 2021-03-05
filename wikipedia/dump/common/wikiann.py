@@ -13,13 +13,13 @@ def get_annotator(lang):
         from .annotators.unitok import UnitokAnnotator
         return UnitokAnnotator()
 
-    # elif lang == 'en':
-    #     from .annotators.moses import MosesAnnotator
-    #     return MosesAnnotator()
-
     elif lang in CHINESE_LANGUAGES:
         from .annotators.chinese import ChineseAnnotator
         return ChineseAnnotator()
+
+    elif lang == 'zh_textsmart':
+        from .annotators.textsmart import TextsmartAnnotator
+        return TextsmartAnnotator()
 
     else:
         from .annotators.unitok import UnitokAnnotator

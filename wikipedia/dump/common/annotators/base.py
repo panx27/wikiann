@@ -1,4 +1,8 @@
 import re
+import logging
+
+
+logger = logging.getLogger()
 
 
 class Annotator:
@@ -28,7 +32,12 @@ class Annotator:
 
                 for sent in sents:
                     if self.nlp:
-                        toks, nlp_results = self.nlp(sent.replace('_', ' '))
+                        try:
+                            toks, nlp_results = self.nlp(sent.replace('_', ' '))
+                        except Exception as e:
+                            logger.error('unexpected error')
+                            logger.error(e)
+                            logger.error(sent.replace('_', ' '))
                     else:
                         toks = self.tokenize(sent.replace('_', ' '))
                         nlp_results = {}
