@@ -79,3 +79,9 @@ if __name__ == '__main__':
     key = [('properties', 1)]
     pfe = {'properties': {'$exists': True}}
     collection.create_index(key, partialFilterExpression=pfe)
+
+    # { sitelinks.zhwiki.title: 1, id: 1 }
+    logger.info('index key: { sitelinks.zhwiki.title: 1, id: 1 }')
+    key = [('sitelinks.zhwiki.title', 1), ('id', 1)]
+    pfe = {'sitelinks.zhwiki.title': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
