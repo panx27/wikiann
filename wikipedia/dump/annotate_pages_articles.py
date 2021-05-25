@@ -39,6 +39,8 @@ def process_one(line, verbose=True):
                                  (sent['start'], sent['end'])):
                 link['start'] -= sent['start']
                 link['end'] -= sent['start']
+                '''
+                # tokenize link text
                 link['tokens'] = annotator.tokenize(link['text'], link['start'])
                 try:
                     assert link['tokens'][0]['start'] == link['start']
@@ -47,6 +49,7 @@ def process_one(line, verbose=True):
                     if verbose:
                         logger.warning(f"wicked link: ({link}, {d['title']})")
                     continue
+                '''
                 matched_links.append(link)
                 count['matched_links'] += 1
         sent['links'] = matched_links
