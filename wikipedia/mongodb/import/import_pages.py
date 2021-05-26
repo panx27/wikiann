@@ -14,8 +14,13 @@ logging.root.setLevel(level=logging.INFO)
 
 
 def import_pages(pdata, name):
-    client = MongoClient(host=host, port=port)
+    if username and password:
+        client = MongoClient(host=host, port=port,
+                             username=username, password=password)
+    else:
+        client = MongoClient(host=host, port=port)
     collection = client[db_name][collection_name]
+
     pages = []
     with open(pdata, 'r') as f:
         for line in f:
@@ -50,6 +55,10 @@ if __name__ == '__main__':
     parser.add_argument('collection_name', help='Collection name')
     parser.add_argument('--nworker', '-n', default=1,
                         help='Number of workers (default=1)')
+    parser.add_argument('--username', '-u', default=None,
+                        help='Username (if authentication is enabled)')
+    parser.add_argument('--password', '-p', default=None,
+                        help='Password (if authentication is enabled)')
     args = parser.parse_args()
 
     indir = args.indir
@@ -58,11 +67,18 @@ if __name__ == '__main__':
     nworker = int(args.nworker)
     db_name = args.db_name
     collection_name = args.collection_name
+    username = args.username
+    password = args.password
 
     logger.info(f'db name: {db_name}')
     logger.info(f'collection name: {collection_name}')
+    if username and password:
+        client = MongoClient(host=host, port=port,
+                             username=username, password=password)
+    else:
+        client = MongoClient(host=host, port=port)
+
     logger.info('drop old collection')
-    client = MongoClient(host=host, port=port)
     client[db_name].drop_collection(collection_name)
 
     logger.info('importing...')

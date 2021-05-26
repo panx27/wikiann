@@ -17,14 +17,25 @@ if __name__ == '__main__':
     parser.add_argument('port', help='MongoDB port')
     parser.add_argument('db_name', help='Database name')
     parser.add_argument('collection_name', help='Collection name')
+    parser.add_argument('--username', '-u', default=None,
+                        help='Username (if authentication is enabled)')
+    parser.add_argument('--password', '-p', default=None,
+                        help='Password (if authentication is enabled)')
     args = parser.parse_args()
 
     host = args.host
     port = int(args.port)
     db_name = args.db_name
     collection_name = args.collection_name
+    username = args.username
+    password = args.password
 
-    client = MongoClient(host=host, port=port)
+    if username and password:
+        client = MongoClient(host=host, port=port,
+                             username=username, password=password)
+    else:
+        client = MongoClient(host=host, port=port)
+
     collection = client[db_name][collection_name]
 
     logger.info('indexing: _chunk_id')
