@@ -10,8 +10,13 @@ logging.root.setLevel(level=logging.INFO)
 
 
 class Wikidata(object):
-    def __init__(self, host, port, db_name, collection_name):
-        self.client = MongoClient(host=host, port=port)
+    def __init__(self, host, port, db_name, collection_name,
+                 username=None, password=None):
+        if username and password:
+            self.client = MongoClient(host=host, port=port,
+                                      username=username, password=password)
+        else:
+            self.client = MongoClient(host=host, port=port)
         self.collection = self.client[db_name][collection_name]
 
     def get_p31s(self, qid):

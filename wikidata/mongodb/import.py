@@ -20,7 +20,13 @@ def process(lines, verbose=False):
         if verbose:
             pid = os.getpid()
             logger.info(f'{pid} started')
-        client = MongoClient(host=host, port=port)
+
+        if username and password:
+            client = MongoClient(host=host, port=port,
+                                 username=username, password=password)
+        else:
+            client = MongoClient(host=host, port=port)
+
         collection = client[db_name][collection_name]
         data = []
         for line in lines:
@@ -58,6 +64,10 @@ if __name__ == '__main__':
                         'RAM usage depends on chunk size)')
     parser.add_argument('--nworker', '-n', default=1,
                         help='Number of workers (default=1)')
+    parser.add_argument('--username', '-u', default=None,
+                        help='Username (if authentication is enabled)')
+    parser.add_argument('--password', '-p', default=None,
+                        help='Password (if authentication is enabled)')
     args = parser.parse_args()
 
     pdata = args.inpath
@@ -67,10 +77,17 @@ if __name__ == '__main__':
     collection_name = args.collection_name
     nworker = int(args.nworker)
     chunk_size = int(args.chunk_size)
+    username = args.username
+    password = args.password
 
     logger.info(f'db name: {db_name}')
     logger.info(f'collection name: {collection_name}')
-    client = MongoClient(host=host, port=port)
+    if username and password:
+        client = MongoClient(host=host, port=port,
+                             username=username, password=password)
+    else:
+        client = MongoClient(host=host, port=port)
+
     logger.info('drop old collection')
     client[db_name].drop_collection(collection_name)
 

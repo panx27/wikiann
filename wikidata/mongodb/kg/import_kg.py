@@ -35,7 +35,11 @@ def process(ids, verbose=False):
         if verbose:
             pid = os.getpid()
             logger.info(f'{pid} started')
-        client = MongoClient(host=host, port=port)
+        if username and password:
+            client = MongoClient(host=host, port=port,
+                                username=username, password=password)
+        else:
+            client = MongoClient(host=host, port=port)
         collection = client[db_name][collection_name]
         data = []
         query = {'id': {'$in': [i['id'] for i in ids]}}
@@ -72,6 +76,10 @@ if __name__ == '__main__':
                         'RAM usage depends on chunk size)')
     parser.add_argument('--nworker', '-n', default=1,
                         help='Number of workers (default=1)')
+    parser.add_argument('--username', '-u', default=None,
+                        help='Username (if authentication is enabled)')
+    parser.add_argument('--password', '-p', default=None,
+                        help='Password (if authentication is enabled)')
     args = parser.parse_args()
 
     host = args.host
@@ -81,8 +89,15 @@ if __name__ == '__main__':
     nworker = int(args.nworker)
     chunk_size = int(args.chunk_size)
     collection_name_imex = args.collection_name_import
+    username = args.username
+    password = args.password
 
-    client = MongoClient(host=host, port=port)
+    if username and password:
+        client = MongoClient(host=host, port=port,
+                             username=username, password=password)
+    else:
+        client = MongoClient(host=host, port=port)
+
     logger.info(f'db name: {db_name}')
     logger.info(f'collection to read: {collection_name}')
     collection = client[db_name][collection_name]
