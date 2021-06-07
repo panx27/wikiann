@@ -28,6 +28,9 @@ def import_sents(pdata, name):
             for n_sent, sent in enumerate(d['sentences']):
                 sent['len_links'] = len(sent['links'])
 
+                for i in sent['links']:
+                    i['text_lower'] = i['text'].lower()
+
                 if langlinks:
                     sent['len_links_ll'] = 0
                     for n, i in enumerate(sent['links']):
