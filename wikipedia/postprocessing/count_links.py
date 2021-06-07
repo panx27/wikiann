@@ -63,7 +63,7 @@ def filter_mention(mention):
     return True
 
 
-def count_links(pdata, fuzzy=False):
+def count_links(pdata, expand=True, fuzzy=False):
     count = {
         'num_of_links': 0,
         'num_of_invalid_title': 0,
@@ -84,10 +84,13 @@ def count_links(pdata, fuzzy=False):
                     continue
 
                 # Expand mention
-                mention = strip_mention(link['text'])
-                mentions = [mention]
-                mentions += expand_mention(mention)
-                mentions = set(mentions)
+                if expand:
+                    mention = strip_mention(link['text'])
+                    mentions = [mention]
+                    mentions += expand_mention(mention)
+                    mentions = set(mentions)
+                else:
+                    mentions = [link['text']]
 
                 for mention in mentions:
                     if not filter_mention(mention):
@@ -98,9 +101,9 @@ def count_links(pdata, fuzzy=False):
     return dict(res), count
 
 
-def process(pdata, fuzzy=False):
+def process(pdata, expand=True, fuzzy=False):
     try:
-        return count_links(pdata, fuzzy=fuzzy)
+        return count_links(pdata, expand=expand, fuzzy=fuzzy)
     except Exception as e:
         logger.error('unexpected error')
         logger.exception(e)
@@ -150,8 +153,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('indir', help='input dir (blocks/)')
     parser.add_argument('outdir', help='output dir')
-    parser.add_argument('--fuzzy', '-f', default=False,
-                        help='generate fuzzy mention table')
+    parser.add_argument('--fuzzy', '-f', default=False, action='store_true',
+                        help='Generate fuzzy mention table')
+    parser.add_argument('--no_expand_mention', '-ne', default=False,
+                        action='store_true', help='Do not expand mention')
     parser.add_argument('--threshold', '-t', default=0,
                         help='threshold')
     parser.add_argument('--nworker', '-n', default=1,
@@ -167,7 +172,7 @@ if __name__ == '__main__':
     logger.info('processing...')
     results = [] # TO-DO: occupied too large RAM
     for i in os.listdir(args.indir):
-        _args = (f'{args.indir}/{i}', args.fuzzy,)
+        _args = (f'{args.indir}/{i}', not args.no_expand_mention, args.fuzzy,)
         results.append(pool.apply_async(process, args=_args,))
     pool.close()
     pool.join()
