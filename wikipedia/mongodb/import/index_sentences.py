@@ -4,6 +4,7 @@ import logging
 import argparse
 
 from pymongo import MongoClient
+from pymongo.collation import Collation, CollationStrength
 
 
 logger = logging.getLogger()
@@ -21,6 +22,7 @@ if __name__ == '__main__':
                         help='Username (if authentication is enabled)')
     parser.add_argument('--password', '-p', default=None,
                         help='Password (if authentication is enabled)')
+    parser.add_argument('--locale', '-l', default='en', help='MongoDB locale')
     args = parser.parse_args()
 
     host = args.host
@@ -29,6 +31,7 @@ if __name__ == '__main__':
     collection_name = args.collection_name
     username = args.username
     password = args.password
+    locale = args.locale
 
     if username and password:
         client = MongoClient(host=host, port=port,
@@ -66,7 +69,8 @@ if __name__ == '__main__':
     collection.create_index('links.title')
 
     logger.info('indexing: links.text')
-    collection.create_index('links.text')
+    collation = Collation(locale=locale, strength=CollationStrength.SECONDARY)
+    collection.create_index('links.text', collation=collation)
 
     logger.info('indexing: tokens.text')
     collection.create_index('tokens.text')
