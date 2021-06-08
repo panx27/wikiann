@@ -21,7 +21,7 @@ logging.root.setLevel(level=logging.INFO)
 
 
 def fast_iter(beg, end, p_xml, outpath):
-    # Using the number of bytes to seek
+    # Using index to seek bz2
     bz2f = io.open(p_xml, 'rb')
     bz2f.seek(beg)
     if end == -1:
@@ -29,12 +29,12 @@ def fast_iter(beg, end, p_xml, outpath):
     else:
         blocks = bz2f.read(end - beg)
 
-    # Wrap up XML
-    decompressed_blocks = bz2.decompress(blocks).decode('utf-8')
+    # Convert bytes to str, and wrap up XML string
+    decompressed_blocks = bz2.decompress(blocks).decode('utf-8') 
     pages = f'<pages>\n{decompressed_blocks}</pages>\n'
     if end == -1:
         pages = pages.replace('</mediawiki>', '')
-    pages = pages.encode('utf-8')  # Convert back to bytes
+    pages = pages.encode('utf-8')  # Convert str back to bytes
 
     with open(f'{outpath}.full.tmp', 'w') as fw, \
          open(f'{outpath}.light.tmp', 'w') as fw_light:
@@ -65,10 +65,9 @@ def fast_iter(beg, end, p_xml, outpath):
             else:
                 res['disambiguation'] = False
 
-            # Light dumps (in terms of file size) containing only
-            # `id`, `title`, `redirect`, `disambiguation`,
-            # for redirection purpose.
-            # For more details, see function: merge_output(outdir)
+            # Light JSON dump only contains:
+            # `id`, `title`, `redirect`, `disambiguation`.
+            # It is used for redirection, see function: merge_output()
             fw_light.write(f'{json.dumps(res)}\n')
 
             # Article
@@ -79,10 +78,9 @@ def fast_iter(beg, end, p_xml, outpath):
                 text_with_links = wikimarkup.remove_markup(raw_markup)
             plain_text, links = wikimarkup.extract_links(text_with_links)
 
-            if len(raw_markup) > 1000 and plain_text == '':
+            if len(raw_markup) > 500 and plain_text == '':
                 msg = f'Get empty string after removing markups: {res}'
                 logger.warning(msg)
-                # print(repr(raw_markup))
 
             # Sections
             res['sections'] = wikimarkup.extract_sects(plain_text)
