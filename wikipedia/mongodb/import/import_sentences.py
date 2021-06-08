@@ -26,7 +26,9 @@ def import_sents(pdata, name):
         for line in f:
             d = json.loads(line)
             for n_sent, sent in enumerate(d['sentences']):
+                sent['len_char'] = sent['end'] - sent['start']
                 sent['len_links'] = len(sent['links'])
+                sent['len_tokens'] = len(sent['tokens'])
 
                 for i in sent['links']:
                     i['text_lower'] = i['text'].lower()

@@ -56,6 +56,12 @@ if __name__ == '__main__':
     logger.info('indexing: len_links')
     collection.create_index('len_links')
 
+    logger.info('indexing: len_tokens')
+    collection.create_index('len_tokens')
+
+    logger.info('indexing: len_char')
+    collection.create_index('len_char')
+
     logger.info('indexing: len_links_ll')
     collection.create_index('len_links_ll')
 
@@ -73,9 +79,6 @@ if __name__ == '__main__':
 
     logger.info('indexing: tokens.text')
     collection.create_index('tokens.text')
-
-    logger.info('indexing: {links.title: 1} {links.text_lower: 1}')
-    collection.create_index([('links.title', 1), ('links.text_lower', 1)])
 
     client.close()
     logger.info('done.')
