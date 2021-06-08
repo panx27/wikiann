@@ -79,6 +79,11 @@ def fast_iter(beg, end, p_xml, outpath):
                 text_with_links = wikimarkup.remove_markup(raw_markup)
             plain_text, links = wikimarkup.extract_links(text_with_links)
 
+            if len(raw_markup) > 1000 and plain_text == '':
+                msg = f'Get empty string after removing markups: {res}'
+                logger.warning(msg)
+                # print(repr(raw_markup))
+
             # Sections
             res['sections'] = wikimarkup.extract_sects(plain_text)
 
@@ -110,13 +115,22 @@ def process(beg, end, p_xml, outpath):
         logger.exception(e)
 
 
-def load_index(pdata):
-    res = set()
-    for line in bz2.BZ2File(pdata):
-        m = re.search((b'(\d+)\:\d+:.+'), line)
-        res.add(int(m.group(1)))
-    res = list(sorted(res, key=int))[0::100]
-    res.append(-1)
+def load_index(pdata, test=False):
+    if test:
+        res = set()
+        for line in bz2.BZ2File(pdata):
+            m = re.search((b'(\d+)\:\d+:.+'), line)
+            res.add(int(m.group(1)))
+            if len(res) == 500:
+                break
+        res = list(sorted(res, key=int))
+    else:
+        res = set()
+        for line in bz2.BZ2File(pdata):
+            m = re.search((b'(\d+)\:\d+:.+'), line)
+            res.add(int(m.group(1)))
+        res = list(sorted(res, key=int))[0::100]
+        res.append(-1)
     return res
 
 
@@ -210,6 +224,8 @@ if __name__ == '__main__':
                         help='number of processors to use (default=1)')
     parser.add_argument('--verbose', '-v', default=False, action='store_true',
                         help='verbose logging')
+    parser.add_argument('--test', '-t', default=False, action='store_true',
+                        help='testing')
     args = parser.parse_args()
 
     filename = os.path.split(args.p_xml)[1].replace('.xml.bz2', '')
@@ -217,8 +233,9 @@ if __name__ == '__main__':
     os.makedirs(f'{args.outdir}/blocks', exist_ok=True)
 
     logger.info('loading index: %s' % args.p_index)
-    bz2f_index = load_index(args.p_index)
+    bz2f_index = load_index(args.p_index, args.test)
     logger.info('# of blocks: %s' % len(bz2f_index))
+
     logger.info('processing...')
     pool = multiprocessing.Pool(processes=int(args.nworker))
     logger.info('# of workers: %s' % args.nworker)
