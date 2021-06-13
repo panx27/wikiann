@@ -9,7 +9,7 @@ import multiprocessing
 import subprocess
 
 from lxml import etree
-from xml.etree.cElementTree import iterparse
+from xml.etree.cElementTree import iterparse, dump
 import ujson as json
 
 from common import wikimarkup
@@ -30,7 +30,7 @@ def fast_iter(beg, end, p_xml, outpath):
         blocks = bz2f.read(end - beg)
 
     # Convert bytes to str, and wrap up XML string
-    decompressed_blocks = bz2.decompress(blocks).decode('utf-8') 
+    decompressed_blocks = bz2.decompress(blocks).decode('utf-8')
     pages = f'<pages>\n{decompressed_blocks}</pages>\n'
     if end == -1:
         pages = pages.replace('</mediawiki>', '')
@@ -60,7 +60,7 @@ def fast_iter(beg, end, p_xml, outpath):
                 res['redirect'] = None
 
             # Disambiguation
-            if re.search('{{disambiguation.*?}}', raw_markup.lower()):
+            if re.search('{{.*?disambiguation.*?}}', raw_markup, re.I):
                 res['disambiguation'] = True
             else:
                 res['disambiguation'] = False
@@ -105,22 +105,17 @@ def fast_iter(beg, end, p_xml, outpath):
         del elems
 
 
-def process(beg, end, p_xml, outpath):
+def process(beg, end, args, outpath):
     try:
-        fast_iter(beg, end, p_xml, outpath)
+        fast_iter(beg, end, args.p_xml, outpath)
     except Exception as e:
         logger.error('unexpected error')
         logger.exception(e)
 
 
-def load_index(pdata, test=False):
-    if test:
-        res = set()
-        for line in bz2.BZ2File(pdata):
-            m = re.search((b'(\d+)\:\d+:.+'), line)
-            res.add(int(m.group(1)))
-            if len(res) == 500:
-                break
+def load_index(pdata, index_range=None):
+    if index_range:
+        res = [int(x) for x in index_range.split(':')]
         res = list(sorted(res, key=int))
     else:
         res = set()
@@ -222,8 +217,8 @@ if __name__ == '__main__':
                         help='number of processors to use (default=1)')
     parser.add_argument('--verbose', '-v', default=False, action='store_true',
                         help='verbose logging')
-    parser.add_argument('--test', '-t', default=False, action='store_true',
-                        help='testing')
+    parser.add_argument('--index_range', '-i', default=None,
+                        help='Index range for debug')
     args = parser.parse_args()
 
     filename = os.path.split(args.p_xml)[1].replace('.xml.bz2', '')
@@ -231,7 +226,7 @@ if __name__ == '__main__':
     os.makedirs(f'{args.outdir}/blocks', exist_ok=True)
 
     logger.info('loading index: %s' % args.p_index)
-    bz2f_index = load_index(args.p_index, args.test)
+    bz2f_index = load_index(args.p_index, args.index_range)
     logger.info('# of blocks: %s' % len(bz2f_index))
 
     logger.info('processing...')
@@ -240,7 +235,7 @@ if __name__ == '__main__':
     logger.info('parent pid: %s' % os.getpid())
     for i, j in zip(bz2f_index, bz2f_index[1:]):
         outpath = f'{args.outdir}/blocks/b_{i}-{j}'
-        pool.apply_async(process, args=(i, j, args.p_xml, outpath,),)
+        pool.apply_async(process, args=(i, j, args, outpath,),)
     pool.close()
     pool.join()
 
