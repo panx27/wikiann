@@ -19,6 +19,12 @@ logger = logging.getLogger()
 logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
 
+disambiguation_page_patterns = [
+    re.compile('({{disambiguation.*?}})', re.I),
+    re.compile('({{.*?disambiguation}})', re.I),
+    re.compile('({{hndis.*?}})', re.I)
+]
+
 
 def fast_iter(beg, end, p_xml, outpath):
     # Using index to seek bz2
@@ -60,10 +66,11 @@ def fast_iter(beg, end, p_xml, outpath):
                 res['redirect'] = None
 
             # Disambiguation
-            if re.search('{{.*?disambiguation.*?}}', raw_markup, re.I):
-                res['disambiguation'] = True
-            else:
-                res['disambiguation'] = False
+            res['disambiguation'] = False
+            for dp in disambiguation_page_patterns:
+                if re.search(dp, raw_markup) and not res['redirect']:
+                    res['disambiguation'] = True
+                    break
 
             # Light JSON dump only contains:
             # `id`, `title`, `redirect`, `disambiguation`.
@@ -77,10 +84,6 @@ def fast_iter(beg, end, p_xml, outpath):
             else:
                 text_with_links = wikimarkup.remove_markup(raw_markup)
             plain_text, links = wikimarkup.extract_links(text_with_links)
-
-            if len(raw_markup) > 500 and plain_text == '':
-                msg = f'Get empty string after removing markups: {res}'
-                logger.warning(msg)
 
             # Sections
             res['sections'] = wikimarkup.extract_sects(plain_text)
