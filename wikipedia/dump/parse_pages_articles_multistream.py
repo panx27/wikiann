@@ -13,6 +13,10 @@ from xml.etree.cElementTree import iterparse, dump
 import ujson as json
 
 from common import wikimarkup
+from wikiextractor.wikiextractor.extract import Extractor
+from common.utils import replace_links
+from common.utils import extract_sections, extract_categories, extract_infobox
+
 
 
 logger = logging.getLogger()
@@ -20,9 +24,9 @@ logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
 
 disambiguation_page_patterns = [
-    re.compile('({{disambiguation.*?}})', re.I),
-    re.compile('({{.*?disambiguation}})', re.I),
-    re.compile('({{hndis.*?}})', re.I)
+    re.compile(r'({{disambiguation.*?}})', re.I),
+    re.compile(r'({{.*?disambiguation}})', re.I),
+    re.compile(r'({{hndis.*?}})', re.I)
 ]
 
 
@@ -66,6 +70,7 @@ def fast_iter(beg, end, p_xml, outpath):
                 res['redirect'] = None
 
             # Disambiguation
+            # https://en.wikipedia.org/wiki/Template:Disambiguation
             res['disambiguation'] = False
             for dp in disambiguation_page_patterns:
                 if re.search(dp, raw_markup) and not res['redirect']:
@@ -78,28 +83,37 @@ def fast_iter(beg, end, p_xml, outpath):
             fw_light.write(f'{json.dumps(res)}\n')
 
             # Article
-            if not res['disambiguation']:
-                text_with_links = wikimarkup.remove_markup(raw_markup,
-                                                           res['title'])
-            else:
-                text_with_links = wikimarkup.remove_markup(raw_markup)
-            plain_text, links = wikimarkup.extract_links(text_with_links)
+            # text_with_links = wikimarkup.remove_markup(raw_markup)
+            # plain_text, links = wikimarkup.extract_links(text_with_links)
+
+            extractor = Extractor(res['id'], 0, '', res['title'], [])
+            paragraphs = extractor.clean_text(raw_markup,
+                                              mark_headers=True,
+                                              expand_templates=False,
+                                              html_safe=False)
+            plain_text, links, elinks = replace_links('\n'.join(paragraphs))
+            # if len(links) != len(links_) or \
+            # set(([x['title'] for x in links])) != set(([x['title'] for x in links_])):
+            #     with open('tmp/foo/%s_a' % res['title'], 'w') as fwt:
+            #         fwt.write(str([x['title'] for x in links])+'\n\n')
+            #         fwt.write('\n'.join([x for x in text_with_links.split('\n') if x])+'\n\n')
+            #     with open('tmp/foo/%s_b' % res['title'], 'w') as fwt:
+            #         fwt.write(str([x['title'] for x in links_])+'\n\n')
+            #         fwt.write('\n'.join(paragraphs)+'\n\n')
 
             # Sections
-            res['sections'] = wikimarkup.extract_sects(plain_text)
+            res['sections'] = extract_sections(plain_text)
 
             # Categories
-            res['categories'] = wikimarkup.extract_cats(raw_markup)
+            res['categories'] = extract_categories(raw_markup)
 
             # Infobox
-            res['infobox'] = wikimarkup.extract_infobox(raw_markup)
-
-            # Reference
-            res['refs'] = wikimarkup.extract_refs(raw_markup)
+            res['infobox'] = extract_infobox(raw_markup)
 
             # Full dumps
             res['article'] = plain_text
             res['links'] = links
+            res['external_links'] = elinks
             fw.write(f'{json.dumps(res)}\n')
 
             elem.clear()
@@ -125,6 +139,7 @@ def load_index(pdata, index_range=None):
         for line in bz2.BZ2File(pdata):
             m = re.search((b'(\d+)\:\d+:.+'), line)
             res.add(int(m.group(1)))
+        # 100 * 100 = 10,000 pages per chunk
         res = list(sorted(res, key=int))[0::100]
         res.append(-1)
     return res
