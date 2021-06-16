@@ -1,0 +1,3 @@
+[submodule "wikipedia/dump/wikiextractor"]
+	path = wikipedia/dump/wikiextractor
+	url = https://github.com/panx27/wikiextractor.git
