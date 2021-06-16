@@ -74,10 +74,16 @@ def count_links(pdata, expand=True, fuzzy=False):
             d = json.loads(line)
             for link in d['links']:
                 count['num_of_links'] += 1
+
                 if not link['id']:
                     count['num_of_invalid_title'] += 1
                     continue
-                # title = link['title'].replace(' ', '_')
+
+                if desired_titles:
+                    if link['id'] not in desired_titles:
+                        count['num_of_invalid_title'] += 1
+                        continue
+
                 title = link['title']
                 if not filter_title(title):
                     count['num_of_invalid_title'] += 1
@@ -153,6 +159,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('indir', help='input dir (blocks/)')
     parser.add_argument('outdir', help='output dir')
+    parser.add_argument('--p_titles', '-p', default=None,
+                        help='Path to desired title list (article.json)')
     parser.add_argument('--fuzzy', '-f', default=False, action='store_true',
                         help='Generate fuzzy mention table')
     parser.add_argument('--no_expand_mention', '-ne', default=False,
@@ -162,6 +170,11 @@ if __name__ == '__main__':
     parser.add_argument('--nworker', '-n', default=1,
                         help='Number of workers (default=1)')
     args = parser.parse_args()
+
+    if args.p_titles:
+        logger.info(f'loading: {args.p_titles}')
+        with open(args.p_titles, 'r') as f:
+            desired_titles = json.load(f)
 
     logger.info('counting...')
     mention2kbid = defaultdict(lambda: defaultdict(int))
