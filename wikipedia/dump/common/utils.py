@@ -52,9 +52,6 @@ def replace_links(text, shift=0):
 
     for i in internal_links + external_links:
         if text[i['start']:i['end']] != i['text']:
-            print(text)
-            print(i)
-            print()
             raise Exception('Unmatched link offset')
 
     return text, internal_links, external_links
