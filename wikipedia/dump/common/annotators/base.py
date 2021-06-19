@@ -16,43 +16,37 @@ class Annotator:
         if links:
             text = self._preserve_links(text, links)
 
-        annotated_sents = []
-        paragraph_count = 0
         index = index
-        for para in re.split('\n\s*\n', text):
+        annotated_sents = []
+        for n, para in enumerate(re.split('\n', text)):
             if not para:
                 continue
-            for line in para.split('\n'):
-                if not line:
-                    continue
-                sents = self.segment(line)
 
-                if links:
-                    sents = self._resegment(text, index, sents, links)
+            sents = self.segment(para)
+            if links:
+                sents = self._resegment(text, index, sents, links)
 
-                for sent in sents:
-                    if self.nlp:
-                        try:
-                            toks, nlp_results = self.nlp(sent.replace('_', ' '))
-                        except Exception as e:
-                            logger.error('unexpected error')
-                            logger.error(e)
-                            logger.error(sent.replace('_', ' '))
-                    else:
-                        toks = self.tokenize(sent.replace('_', ' '))
-                        nlp_results = {}
-                    start = text.index(sent, index)
-                    end = start + len(sent)
-                    index = end
-                    annotated_sents.append({
-                        'tokens': toks,
-                        'start': start,
-                        'end': end,
-                        # 'nlp': nlp_results,
-                        'processed': nlp_results,
-                        'paragraph_index': paragraph_count
-                    })
-            paragraph_count += 1
+            for sent in sents:
+                if self.nlp:
+                    try:
+                        toks, nlp_res = self.nlp(sent.replace('_', ' '))
+                    except Exception as e:
+                        logger.error('unexpected error')
+                        logger.error(e)
+                        logger.error(sent.replace('_', ' '))
+                else:
+                    toks = self.tokenize(sent.replace('_', ' '))
+                    nlp_res = {}
+                start = text.index(sent, index)
+                end = start + len(sent)
+                index = end
+                annotated_sents.append({
+                    'tokens': toks,
+                    'start': start,
+                    'end': end,
+                    'nlp': nlp_res,
+                    'paragraph_index': n
+                })
         return annotated_sents
 
     @staticmethod
@@ -113,5 +107,5 @@ class Annotator:
         Store results into a dict.
         """
         toks = []
-        nlp_results = {}
-        return toks, nlp_results
+        nlp_res = {}
+        return toks, nlp_res
