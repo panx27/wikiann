@@ -12,19 +12,20 @@ class Annotator:
         self.tokenize = self._tokenize
         self.nlp = None
 
-    def annotate(self, text, index=0, links=None):
+    def annotate(self, text, shift=0, links=None):
         if links:
             text = self._preserve_links(text, links)
 
-        index = index
+        shift = shift
+        paragraph_index = 0
         annotated_sents = []
         for n, para in enumerate(re.split('\n', text)):
-            if not para:
+            if not para.strip():
                 continue
 
             sents = self.segment(para)
             if links:
-                sents = self._resegment(text, index, sents, links)
+                sents = self._resegment(text, shift, sents, links)
 
             for sent in sents:
                 if self.nlp:
@@ -37,16 +38,17 @@ class Annotator:
                 else:
                     toks = self.tokenize(sent.replace('_', ' '))
                     nlp_res = {}
-                start = text.index(sent, index)
+                start = text.index(sent, shift)
                 end = start + len(sent)
-                index = end
+                shift = end
                 annotated_sents.append({
                     'tokens': toks,
                     'start': start,
                     'end': end,
                     'nlp': nlp_res,
-                    'paragraph_index': n
+                    'paragraph_index': paragraph_index
                 })
+            paragraph_index += 1
         return annotated_sents
 
     @staticmethod
@@ -62,19 +64,19 @@ class Annotator:
         return text
 
     @staticmethod
-    def _resegment(text, index, sents, links):
+    def _resegment(text, shift, sents, links):
         """_preserve_links(**kwargs) doesn't always succeed, we need to
         resegment sentences.
         """
         new_sents = []
         n = 0
-        index = index
+        shift = shift
         for i, sent in enumerate(sents):
             if n > i:
                 continue
-            start = text.index(sent, index)
+            start = text.index(sent, shift)
             end = start + len(sent)
-            index = end
+            shift = end
             for link in links:
                 while link['start'] >= start and link['start'] < end and \
                       link['end'] > end:
@@ -83,7 +85,7 @@ class Annotator:
                         break
                     sent += text[end:text.index(sents[i], end)+len(sents[i])]
                     end = start + len(sent)
-            index = end
+            shift = end
             n = i + 1
             new_sents.append(sent)
         return new_sents
