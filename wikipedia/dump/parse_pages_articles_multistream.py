@@ -13,7 +13,7 @@ from xml.etree.cElementTree import iterparse, dump
 import ujson as json
 
 from common import wikimarkup
-from wikiextractor.wikiextractor.extract import Extractor
+from common.extract import Extractor
 from common.utils import replace_links
 from common.utils import extract_sections, extract_categories, extract_infobox
 
