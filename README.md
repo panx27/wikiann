@@ -1,5 +1,51 @@
 # Wikimedia dumps processor
 
+## Wikipedia
+### Quickstart
+     cd wikiann/wikipedia/dump
+Step 1: download wiki dumps
+
+     USAGE: download.py <wikisite (e.g., enwiki)> <label (e.g., 20180401)> <output dir>
+
+     e.g., python download.py yowiki latest ~/wikiann
+
+Step 2: parse wiki dump
+
+     usage: parse_pages_articles_multistream.py [-h] [--nworker NWORKER] [--verbose]
+                                                [--index_range INDEX_RANGE]
+                                                p_xml p_index outdir
+
+     positional arguments:
+       p_xml                 path to pages-articles-multistream.xml.bz
+       p_index               path to pages-articles-multistream-index.txt.bz2
+       outdir                output directory
+
+     optional arguments:
+       -h, --help            show this help message and exit
+       --nworker NWORKER, -n NWORKER
+                             number of processors to use (default=1)
+       --verbose, -v         verbose logging
+       --index_range INDEX_RANGE, -i INDEX_RANGE
+                             Index range for debug
+
+     e.g., python parse_pages_articles_multistream.py ~/wikiann/latest/yowiki-latest/yowiki-latest-pages-articles-multistream.xml.bz2 ~/wikiann/latest/yowiki-latest/yowiki-latest-pages-articles-multistream-index.txt.bz2 ~/wikiann/latest/yowiki-latest/output --nworker 4
+
+Step 3: annotate (apply sentence segmentation, tokenization, etc.) parsed output
+
+     usage: annotate.py [-h] [--nworker NWORKER] [--verbose] indir outdir lang
+
+     positional arguments:
+       indir                 input directory (blocks/)
+       outdir                output directory
+       lang                  wikipedia language code
+
+     optional arguments:
+       -h, --help            show this help message and exit
+       --nworker NWORKER, -n NWORKER
+                             number of processors to use (default=1)
+
+     e.g., python annotate.py ~/wikiann/latest/yowiki-latest/output/blocks ~/wikiann/latest/yowiki-latest/output/blocks.pp yo --nworker 4
+
 ## Wikidata
 Import Wikidata [json dump](https://dumps.wikimedia.org/wikidatawiki/entities/) (.json.bz2) into [Mongodb](https://www.mongodb.com/) and create index
 
@@ -27,6 +73,7 @@ Import Wikidata [json dump](https://dumps.wikimedia.org/wikidatawiki/entities/) 
 
 
 ### Quickstart
+     cd wikiann/wikidata/mongodb/
 Step 1: import
 
     usage: import.py [-h] [--chunk_size CHUNK_SIZE] [--nworker NWORKER]
