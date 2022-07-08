@@ -59,6 +59,12 @@ if __name__ == '__main__':
     logger.info('indexing: sections.text')
     collection.create_index('sections.text')
 
+    logger.info('indexing: sections.title')
+    collection.create_index('sections.title')
+
+    logger.info('indexing: sections.level')
+    collection.create_index('sections.level')
+
     logger.info('indexing: links.id')
     collection.create_index('links.id')
 

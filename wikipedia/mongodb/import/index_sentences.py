@@ -77,8 +77,20 @@ if __name__ == '__main__':
     logger.info('indexing: links.text_lower')
     collection.create_index('links.text_lower')
 
-    logger.info('indexing: tokens.text')
-    collection.create_index('tokens.text')
+    # logger.info('indexing: tokens.text')
+    # collection.create_index('tokens.text')
+
+    logger.info('indexing: { title: 1, start: 1 }')
+    key = [('title', 1), ('start', 1)]
+    collection.create_index(key)
+
+    logger.info('indexing: { title: 1, end: 1 }')
+    key = [('title', 1), ('end', 1)]
+    collection.create_index(key)
+
+    logger.info('indexing: { title:1, start: 1, end: 1 }')
+    key = [('title', 1), ('start', 1), ('end', 1)]
+    collection.create_index(key)
 
     client.close()
     logger.info('done.')

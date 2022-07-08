@@ -74,7 +74,9 @@ def extract_sections(text):
         sects.append({
             'text': i.group(),
             'start': i.start(),
-            'end': i.end()
+            'end': i.end(),
+            'title': i.group().replace('=', '').strip(),
+            'level': int(i.group().count('=') / 2)
         })
     return sects
 
