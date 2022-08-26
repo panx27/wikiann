@@ -16,15 +16,13 @@ logging.root.setLevel(level=logging.INFO)
 
 def parse_claims(data):
     res = []
-    for pid in data['claims']:
-        for i in data['claims'][pid]:
+    for property_id in data['claims']:
+        for i in data['claims'][property_id]:
             try:
                 if i['mainsnak']['datatype'] == 'wikibase-item' and \
-                   i['mainsnak']['snaktype'] == 'value':
+                   i['mainsnak']['snaktype'] == 'value':  # only keep object that has qid
                     qid = i['mainsnak']['datavalue']['value']['id']
-                    res.append((pid, qid))
-                # else:
-                #     res.append((pid, i['mainsnak']['datatype']))
+                    res.append((property_id, qid))
             except KeyError:
                 logger.error(i)
     return res
