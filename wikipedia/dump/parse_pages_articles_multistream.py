@@ -240,7 +240,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     filename = os.path.split(args.p_xml)[1].replace('.xml.bz2', '')
-    lang = re.search(r'(\w+)wiki\-', filename).group(1).replace('_', '-')
+    # lang = re.search(r'(\w+)wiki\-', filename).group(1).replace('_', '-')
     os.makedirs(f'{args.outdir}/blocks', exist_ok=True)
 
     logger.info('loading index: %s' % args.p_index)
