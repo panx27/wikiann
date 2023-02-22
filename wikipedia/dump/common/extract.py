@@ -693,8 +693,7 @@ ignoredTags = (
 # placeholder_tags = {'math': 'formula', 'code': 'codice'}
 # Anchor link may have <code> tab, for example,
 # [[Select (SQL)|<code>DISTINCT</code> keyword]]
-placeholder_tags = {'math': 'formula'}
-
+placeholder_tags = {}
 
 def normalizeTitle(title):
     """Normalize title"""

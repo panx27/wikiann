@@ -111,7 +111,7 @@ def fast_iter(beg, end, p_xml, outpath):
             res['infobox'] = extract_infobox(raw_markup)
 
             # Full dumps
-            res['article'] = plain_text
+            res['text'] = plain_text
             res['links'] = links
             res['external_links'] = elinks
             fw.write(f'{json.dumps(res)}\n')
