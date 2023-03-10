@@ -171,6 +171,7 @@ if __name__ == '__main__':
                         help='Number of workers (default=1)')
     args = parser.parse_args()
 
+    desired_titles = None
     if args.p_titles:
         logger.info(f'loading: {args.p_titles}')
         with open(args.p_titles, 'r') as f:
