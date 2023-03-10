@@ -30,7 +30,7 @@ def process_one(line, verbose=True):
         'matched_links': 0
     }
 
-    text = d['article']
+    text = d['text']
     sentences = annotator.annotate(text, links=d['links'])
     for sent in sentences:
         matched_links = []
