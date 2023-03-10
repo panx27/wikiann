@@ -18,6 +18,9 @@ def download(wikisite, label, outdir):
         '-latest-site_stats.sql.gz',
         '-latest-image.sql.gz',
         '-latest-imagelinks.sql.gz',
+        '-latest-externallinks.sql.gz',
+        '-latest-category.sql.gz',
+        '-latest-categorylinks.sql.gz'
     ]
     cmds = []
     for i in downloads:
@@ -38,17 +41,19 @@ def download_all(label, outdir):
     request = urllib.request.Request(url)
     result = urllib.request.urlopen(request).read()
     data = json.loads(result)
+    n = 0
     for i in data['sitematrix']:
         if i == 'count':
+            print('number of sites: %d' % data['sitematrix']['count'])
             continue
         d = data['sitematrix'][i]
         lang = d['code']
-        try:
-            dbname = d['site'][0]['dbname']
-        except IndexError:
-            continue
-        print(lang, dbname)
-        download(dbname, label, outdir)
+        for site in d['site']:
+            dbname = site['dbname']
+            print(lang, dbname)
+            n += 1
+            download(dbname, label, outdir)
+    print(n)
 
 
 if __name__ == '__main__':
