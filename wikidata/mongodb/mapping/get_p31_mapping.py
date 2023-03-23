@@ -45,7 +45,7 @@ if __name__ == '__main__':
                              username=username, password=password)
     else:
         client = MongoClient(host=host, port=port)
-    
+
     collection = client[db_name][collection_name]
 
     query = {'properties': {'$in': ['P31']}}
