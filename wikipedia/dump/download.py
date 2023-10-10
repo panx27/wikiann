@@ -27,8 +27,9 @@ def download(wikisite, label, outdir):
         cmds.append('wget %s%s%s -O %s/%s%s' %
                     (url, wikisite, i,
                      outdir, wikisite, i.replace('latest', label)))
-    for i in cmds:
-        subprocess.call(i, shell=True)
+    for cmd in cmds:
+        cmd += f' -nv -a wget_log_{os.getpid()}'
+        subprocess.call(cmd, shell=True)
 
 
 def download_all(label, outdir):
