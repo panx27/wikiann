@@ -52,24 +52,30 @@ def fast_iter(beg, end, input_path, output_path):
             if ns != '0':  # Main page (ns == 0) only
                 continue
 
-            res = {
-                'id': elem.find('id').text,
-                'title': elem.find('title').text
-            }
-
+            page_id = elem.find('id').text
+            page_title = elem.find('title').text
             # Redirect
             if elem.find('redirect') is not None:
-                res['redirect'] = elem.find('redirect').attrib['title']
+                redirect = elem.find('redirect').attrib['title']
             else:
-                res['redirect'] = None
+                redirect = None
 
-            extractor = Extractor(res['id'], 0, '', res['title'], [])
-            res['revisions'] = []
-            for i in elem.findall('revision'):
+            extractor = Extractor(page_id, 0, '', page_title, [])
+            res = []
+            for n, i in enumerate(elem.findall('revision')):
                 rev = {
+                    'page_id': page_id,
+                    'page_title': page_title,
+                    'redirect': redirect,
                     'id': i.find('id').text,
-                    'timestamp': i.find('timestamp').text,
+                    'ts': i.find('timestamp').text,
+                    'idx': n,
                 }
+                rev['_id'] = f'{page_id}_{rev["id"]}_{rev["idx"]}'
+                try:
+                    rev['parentid'] = i.find('parentid').text
+                except AttributeError:
+                    rev['parentid'] = None
                 try:
                     rev['contributor'] = {'id': i.find('contributor').find('id').text}
                 except AttributeError:
@@ -91,12 +97,13 @@ def fast_iter(beg, end, input_path, output_path):
                 rev['sections'] = extract_sections(plain_text)
                 rev['categories'] = extract_categories(raw_markup)
                 rev['infobox'] = extract_infobox(raw_markup)
-                rev['article'] = plain_text
+                rev['text'] = plain_text
                 rev['links'] = links
                 rev['external_links'] = elinks
 
-                res["revisions"].append(rev)
-            fw.write(f'{json.dumps(res)}\n')
+                res.append(rev)
+            for i in res:
+                fw.write(f'{json.dumps(i)}\n')
 
             elem.clear()
             while elem.getprevious() is not None:
@@ -138,9 +145,10 @@ def load_index(input_path, pages_per_chunk=100):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_path',
+    parser.add_argument('-i', '--input_path', required=True,
                         help='path to pages-meta-history\d.xml-\w+.bz2')
-    parser.add_argument('outdir', help='output directory')
+    parser.add_argument('-o', '--output_dir', required=True,
+                        help='output directory')
     parser.add_argument('--nworker', '-n', default=1,
                         help='number of processors to use (default=1)')
     parser.add_argument('--verbose', '-v', default=False, action='store_true',
@@ -150,7 +158,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     filename = os.path.split(args.input_path)[1].replace('.bz2', '')
-    os.makedirs(f'{args.outdir}/chunks', exist_ok=True)
+    os.makedirs(f'{args.output_dir}/chunks', exist_ok=True)
 
     logger.info('loading index: %s' % args.input_path)
     bz2f_index = load_index(args.input_path)
@@ -161,7 +169,7 @@ if __name__ == '__main__':
     logger.info('# of workers: %s' % args.nworker)
     logger.info('parent pid: %s' % os.getpid())
     for i, j in bz2f_index:
-        outpath = f'{args.outdir}/chunks/b_{i}-{j}'
+        outpath = f'{args.output_dir}/chunks/b_{i}-{j}'
         pool.apply_async(process, args=(i, j, args, outpath,),)
     pool.close()
     pool.join()
