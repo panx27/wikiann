@@ -51,6 +51,10 @@ if __name__ == '__main__':
                         continue
                     cmd = f'wget {url}{file_name} -O {output_dir}/{file_name}'
                     cmds.append(cmd)
+
+    with open(f'cmds_{os.getpid()}', "w") as fw:
+        fw.write('\n'.join(cmds))
+
     pool = multiprocessing.Pool(processes=args.nproc)
     for i in cmds:
         pool.apply_async(process, args=(i,),)
