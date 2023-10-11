@@ -36,6 +36,8 @@ tag_patterns = re.compile(b'(.*?)<(/?\w+)[^>]*>(?:([^<]*)(<.*?>)?)?')
 
 
 def fast_iter(beg, end, input_path, output_path, args):
+    filename = os.path.split(input_path)[1]
+
     if args.use_mongodb:
         client = MongoClient(host=args.host, port=args.port,
                             username=args.username, password=args.password)
@@ -70,6 +72,7 @@ def fast_iter(beg, end, input_path, output_path, args):
             res = []
             for n, i in enumerate(elem.findall('revision')):
                 rev = {
+                    '_chunk_id': f'{filename}_{beg}:{end}',
                     'page_id': page_id,
                     'page_title': page_title,
                     'redirect': redirect,
@@ -184,7 +187,6 @@ if __name__ == '__main__':
         assert args.db_name is not None
         assert args.collection_name is not None
 
-    filename = os.path.split(args.input_path)[1].replace('.bz2', '')
     os.makedirs(f'{args.output_dir}/chunks', exist_ok=True)
 
     logger.info('loading index: %s' % args.input_path)
