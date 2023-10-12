@@ -54,7 +54,7 @@ def fast_iter(beg, end, input_path, output_path, args):
     chunks = b'<pages>' + chunks + b'</pages>'
 
     with open(f'{output_path}', 'w') as fw:
-        elems = etree.iterparse(io.BytesIO(chunks), events=('end',), tag='page')
+        elems = etree.iterparse(io.BytesIO(chunks), events=('end',), tag='page', huge_tree=True)
         for _, elem in elems:
             ns = elem.find('ns').text
             if ns != '0':  # Main page (ns == 0) only
