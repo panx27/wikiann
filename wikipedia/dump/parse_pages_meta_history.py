@@ -50,7 +50,7 @@ def fast_iter(beg, end, input_path, output_path, args):
         chunks = bz2f.read(-1)
     else:
         chunks = bz2f.read(end - beg)
-    # Wrap up XML string
+    # Wrap up xml bytes
     chunks = b'<pages>' + chunks + b'</pages>'
 
     with open(f'{output_path}', 'w') as fw:
@@ -102,16 +102,17 @@ def fast_iter(beg, end, input_path, output_path, args):
                                                 mark_headers=True,
                                                 expand_templates=False,
                                                 html_safe=False)
-                plain_text, links, elinks = replace_links('\n'.join(paragraphs))
+                plain_text, links, exlinks = replace_links('\n'.join(paragraphs))
 
-                rev['sections'] = extract_sections(plain_text)
-                rev['categories'] = extract_categories(raw_markup)
-                rev['infobox'] = extract_infobox(raw_markup)
                 rev['text'] = plain_text
                 rev['links'] = links
-                rev['external_links'] = elinks
+                rev['infobox'] = extract_infobox(raw_markup)
+                rev['sections'] = extract_sections(plain_text)
+                rev['categories'] = extract_categories(raw_markup)
+                rev['external_links'] = exlinks
 
                 res.append(rev)
+
             if args.use_mongodb:
                 collection.insert_many(res)
             else:
@@ -189,8 +190,15 @@ if __name__ == '__main__':
 
     os.makedirs(f'{args.output_dir}/chunks', exist_ok=True)
 
-    logger.info('loading index: %s' % args.input_path)
-    bz2f_index = load_index(args.input_path)
+    if os.path.exists(f'{args.input_path}.idx'):
+        logger.info('loading index: %s.idx' % args.input_path)
+        with open(f'{args.input_path}.idx', 'r') as f:
+            bz2f_index = json.load(f)
+    else:
+        logger.info('loading index: %s' % args.input_path)
+        bz2f_index = load_index(args.input_path)
+        with open(f'{args.input_path}.idx', 'w') as fw:
+            json.dump(bz2f_index, fw)
     logger.info('# of chunks: %s' % len(bz2f_index))
 
     logger.info('processing...')
