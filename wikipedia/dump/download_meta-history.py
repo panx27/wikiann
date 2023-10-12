@@ -10,8 +10,11 @@ import json
 
 def process(cmd):
     cmd += f' -nv -a wget_log_{os.getpid()}'
-    print(f'{os.getpid()}: {cmd}')
-    subprocess.call(cmd, shell=True)
+    print(f'- {os.getpid()}: {cmd}')
+    r = subprocess.call(cmd, shell=True)
+    while r != 0:
+        print(f'- {os.getpid()} retry: {cmd}')
+        r = subprocess.call(cmd, shell=True)
 
 
 if __name__ == '__main__':
