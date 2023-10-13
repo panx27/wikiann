@@ -57,9 +57,9 @@ def fast_iter(beg, end, input_path, output_path, args):
     with open(f'{output_path}', 'w') as fw:
         elems = etree.iterparse(io.BytesIO(chunks), events=('end',), tag='page', huge_tree=True)
         for _, elem in elems:
-            ns = elem.find('ns').text
-            if ns != '0':  # Main page (ns == 0) only
-                continue
+            ns = int(elem.find('ns').text)
+            # if ns != '0':  # Main page (ns == 0) only
+            #     continue
 
             page_id = elem.find('id').text
             page_title = elem.find('title').text
@@ -74,6 +74,7 @@ def fast_iter(beg, end, input_path, output_path, args):
             for n, i in enumerate(elem.findall('revision')):
                 rev = {
                     '_chunk_id': f'{filename}_{beg}:{end}',
+                    'ns': ns,
                     'page_id': page_id,
                     'page_title': page_title,
                     'redirect': redirect,

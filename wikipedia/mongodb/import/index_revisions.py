@@ -13,10 +13,10 @@ logging.root.setLevel(level=logging.INFO)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('host', help='MongoDB host')
-    parser.add_argument('port', help='MongoDB port')
-    parser.add_argument('db_name', help='Database name')
-    parser.add_argument('collection_name', help='Collection name')
+    parser.add_argument('--host', required=True, help='MongoDB host')
+    parser.add_argument('--port', required=True, help='MongoDB port')
+    parser.add_argument('--db_name', required=True, help='Database name')
+    parser.add_argument('--collection_name', required=True, help='Collection name')
     parser.add_argument('--username', '-u', default=None,
                         help='Username (if authentication is enabled)')
     parser.add_argument('--password', '-p', default=None,
@@ -40,6 +40,9 @@ if __name__ == '__main__':
 
     logger.info('indexing: _chunk_id')
     collection.create_index('_chunk_id')
+
+    logger.info('indexing: ns')
+    collection.create_index('ns')
 
     logger.info('indexing: page_id')
     collection.create_index('page_id')
