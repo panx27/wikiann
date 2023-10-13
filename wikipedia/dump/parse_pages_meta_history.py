@@ -3,6 +3,7 @@ import os
 import io
 import re
 import bz2
+import json
 import argparse
 import logging
 import multiprocessing
@@ -11,7 +12,7 @@ from datetime import datetime
 
 from lxml import etree
 from xml.etree.cElementTree import iterparse, dump
-import ujson as json
+from bson import json_util
 
 from common import wikimarkup
 from common.extract import Extractor
@@ -114,10 +115,22 @@ def fast_iter(beg, end, input_path, output_path, args):
                 res.append(rev)
 
             if args.use_mongodb:
-                collection.insert_many(res)
+                try:
+                    collection.insert_many(res)
+                except UnicodeEncodeError:
+                    res = json.loads(
+                        json.dumps(res, default=json_util.default),
+                        object_hook=json_util.object_hook
+                    )
+                    # for n, i in enumerate(res):
+                    #     ts = res[n]['ts']
+                    #     res[n]['ts'] = None
+                    #     res[n] = json.loads(json.dumps(res[n]))
+                    #     res[n]['ts'] = ts
+                    collection.insert_many(res)
             else:
                 for i in res:
-                    fw.write(f'{json.dumps(i)}\n')
+                    fw.write(f'{json.dumps(i, default=json_util.default)}\n')
 
             elem.clear()
             while elem.getprevious() is not None:
