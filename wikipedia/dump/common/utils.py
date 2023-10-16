@@ -1,4 +1,5 @@
 import re
+import warnings
 
 
 RE_LINK = re.compile(r'<a href="(.*?)" type="(\w+)">(.*?)</a>')
@@ -48,7 +49,8 @@ def replace_links(text, shift=0):
             link['url'] = a_target
             external_links.append(link)
         else:
-            raise Exception(f'Unrecognized anchor type: {a_type}')
+            # raise Exception(f'Unrecognized anchor type: {a_type}')
+            warnings.warn(f'Unrecognized anchor type: {a_type}', UserWarning)
 
     for i in internal_links + external_links:
         if text[i['start']:i['end']] != i['text']:
