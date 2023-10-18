@@ -120,15 +120,22 @@ def fast_iter(beg, end, input_path, output_path, args):
                     collection.insert_many(res)
                 except UnicodeEncodeError:
                     res = json.loads(
-                        json.dumps(res, default=json_util.default),
+                        json.dumps(
+                            res,
+                            ensure_ascii=False,
+                            default=json_util.default
+                        ).encode("utf-8", "ignore").decode(),
                         object_hook=json_util.object_hook
                     )
-                    # for n, i in enumerate(res):
-                    #     ts = res[n]['ts']
-                    #     res[n]['ts'] = None
-                    #     res[n] = json.loads(json.dumps(res[n]))
-                    #     res[n]['ts'] = ts
-                    collection.insert_many(res)
+                    for n, i in enumerate(res):
+                        try:
+                            collection.insert_one(i)
+                        except DuplicateKeyError:
+                            pass
+                        except UnicodeEncodeError:
+                            logger.error(f"Still get UnicodeEncodeError: {i['_chunk_id']} {i['_id']}")
+                for i in res:
+                    fw.write(f'{json.dumps(i, default=json_util.default)}\n')
             else:
                 for i in res:
                     fw.write(f'{json.dumps(i, default=json_util.default)}\n')
@@ -147,6 +154,7 @@ def process(beg, end, args, outpath):
         fast_iter(beg, end, args.input_path, outpath, args)
     except Exception as e:
         logger.error('unexpected error')
+        logger.error(args.input_path, beg, end)
         logger.exception(e)
 
 
@@ -197,6 +205,7 @@ if __name__ == '__main__':
 
     if args.use_mongodb:
         from pymongo import MongoClient
+        from pymongo.errors import DuplicateKeyError
         assert args.host is not None
         assert args.port is not None
         assert args.db_name is not None

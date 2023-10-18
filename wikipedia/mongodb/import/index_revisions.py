@@ -38,8 +38,8 @@ if __name__ == '__main__':
 
     collection = client[db_name][collection_name]
 
-    logger.info('indexing: _chunk_id')
-    collection.create_index('_chunk_id')
+    # logger.info('indexing: _chunk_id')
+    # collection.create_index('_chunk_id')
 
     logger.info('indexing: ns')
     collection.create_index('ns')
