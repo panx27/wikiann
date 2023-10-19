@@ -47,100 +47,108 @@ def fast_iter(beg, end, input_path, args):
     collection = client[args.db_name][args.collection_name]
 
     # Using index to seek bz2
-    bz2f = bz2.BZ2File(input_path)
-    bz2f.seek(beg)
-    if end == -1:
-        chunks = bz2f.read(-1)
-    else:
-        chunks = bz2f.read(end - beg)
-    # Wrap up xml bytes
-    chunks = b'<pages>' + chunks + b'</pages>'
-
-    elems = etree.iterparse(io.BytesIO(chunks), events=('end',), tag='page', huge_tree=True)
-    for _, elem in elems:
-        ns = int(elem.find('ns').text)
-        # if ns != '0':  # Main page (ns == 0) only
-        #     continue
-
-        page_id = elem.find('id').text
-        page_title = elem.find('title').text
-        # Redirect
-        if elem.find('redirect') is not None:
-            redirect = elem.find('redirect').attrib['title']
+    with bz2.BZ2File(input_path) as f:
+        if args.verbose:
+            logger.info(f"{os.getpid()}: seeking {beg}")
+        f.seek(beg)
+        if args.verbose:
+            logger.info(f"{os.getpid()}: reading {end - beg}")
+        if end == -1:
+            chunks = f.read(-1)
         else:
-            redirect = None
+            chunks = f.read(end - beg)
+        # Wrap up xml bytes
+        chunks = b'<pages>' + chunks + b'</pages>'
 
-        extractor = Extractor(page_id, 0, '', page_title, [])
-        res = []
-        for n, i in enumerate(elem.findall('revision')):
-            rev = {
-                '_chunk_id': f'{filename}_{beg}:{end}',
-                'ns': ns,
-                'page_id': page_id,
-                'page_title': page_title,
-                'redirect': redirect,
-                'id': i.find('id').text,
-                'ts': i.find('timestamp').text,
-                'idx': n,
-            }
-            rev['_id'] = f'{page_id}_{rev["id"]}_{rev["idx"]}'
-            rev['ts'] = datetime.strptime(rev['ts'], "%Y-%m-%dT%H:%M:%SZ")
-            try:
-                rev['parentid'] = i.find('parentid').text
-            except AttributeError:
-                rev['parentid'] = None
-            try:
-                rev['contributor'] = {'id': i.find('contributor').find('id').text}
-            except AttributeError:
-                rev['contributor'] = None
-            try:
-                rev['comment'] = i.find('comment').text
-            except AttributeError:
-                rev['comment'] = None
-            raw_markup = i.find('text').text
-            if raw_markup is None:
-                raw_markup = ''
+        if args.verbose:
+            logger.info(f"{os.getpid()}: parsing")
+        elems = etree.iterparse(io.BytesIO(chunks), events=('end',), tag='page', huge_tree=True)
+        for _, elem in elems:
+            ns = int(elem.find('ns').text)
+            # if ns != '0':  # Main page (ns == 0) only
+            #     continue
 
-            paragraphs = extractor.clean_text(raw_markup,
-                                            mark_headers=True,
-                                            expand_templates=False,
-                                            html_safe=False)
-            plain_text, links, exlinks = replace_links('\n'.join(paragraphs))
+            page_id = elem.find('id').text
+            page_title = elem.find('title').text
+            # Redirect
+            if elem.find('redirect') is not None:
+                redirect = elem.find('redirect').attrib['title']
+            else:
+                redirect = None
 
-            rev['text'] = plain_text
-            rev['links'] = links
-            rev['infobox'] = extract_infobox(raw_markup)
-            rev['sections'] = extract_sections(plain_text)
-            rev['categories'] = extract_categories(raw_markup)
-            rev['external_links'] = exlinks
-
-            res.append(rev)
-
-        try:
-            collection.insert_many(res)
-        except UnicodeEncodeError:
-            res = json.loads(
-                json.dumps(
-                    res,
-                    ensure_ascii=False,
-                    default=json_util.default
-                ).encode("utf-8", "ignore").decode(),
-                object_hook=json_util.object_hook
-            )
-            for n, i in enumerate(res):
+            extractor = Extractor(page_id, 0, '', page_title, [])
+            res = []
+            for n, i in enumerate(elem.findall('revision')):
+                rev = {
+                    '_chunk_id': f'{filename}_{beg}:{end}',
+                    'ns': ns,
+                    'page_id': page_id,
+                    'page_title': page_title,
+                    'redirect': redirect,
+                    'id': i.find('id').text,
+                    'ts': i.find('timestamp').text,
+                    'idx': n,
+                }
+                rev['_id'] = f'{page_id}_{rev["id"]}_{rev["idx"]}'
+                rev['ts'] = datetime.strptime(rev['ts'], "%Y-%m-%dT%H:%M:%SZ")
                 try:
-                    collection.insert_one(i)
-                except DuplicateKeyError:
-                    pass
-                except UnicodeEncodeError:
-                    logger.error(f"Still get UnicodeEncodeError: {i['_chunk_id']} {i['_id']}")
+                    rev['parentid'] = i.find('parentid').text
+                except AttributeError:
+                    rev['parentid'] = None
+                try:
+                    rev['contributor'] = {'id': i.find('contributor').find('id').text}
+                except AttributeError:
+                    rev['contributor'] = None
+                try:
+                    rev['comment'] = i.find('comment').text
+                except AttributeError:
+                    rev['comment'] = None
+                raw_markup = i.find('text').text
+                if raw_markup is None:
+                    raw_markup = ''
 
-        elem.clear()
-        while elem.getprevious() is not None:
-            del elem.getparent()[0]
-    del elems
-    bz2f.close()
+                paragraphs = extractor.clean_text(raw_markup,
+                                                mark_headers=True,
+                                                expand_templates=False,
+                                                html_safe=False)
+                plain_text, links, exlinks = replace_links('\n'.join(paragraphs))
+
+                rev['text'] = plain_text
+                rev['links'] = links
+                rev['infobox'] = extract_infobox(raw_markup)
+                rev['sections'] = extract_sections(plain_text)
+                rev['categories'] = extract_categories(raw_markup)
+                rev['external_links'] = exlinks
+
+                res.append(rev)
+
+            try:
+                r = collection.insert_many(res)
+                # logger.info(f"{os.getpid()}: {str(r)}")
+            except UnicodeEncodeError:
+                res = json.loads(
+                    json.dumps(
+                        res,
+                        ensure_ascii=False,
+                        default=json_util.default
+                    ).encode("utf-8", "ignore").decode(),
+                    object_hook=json_util.object_hook
+                )
+                for n, i in enumerate(res):
+                    try:
+                        collection.insert_one(i)
+                    except DuplicateKeyError:
+                        pass
+                    except UnicodeEncodeError:
+                        logger.error(f"Still get UnicodeEncodeError: {i['_chunk_id']} {i['_id']}")
+
+            elem.clear()
+            while elem.getprevious() is not None:
+                del elem.getparent()[0]
+        del elems
     client.close()
+    if args.verbose:
+        logger.info(f"{os.getpid()}: done.")
 
 
 def process(beg, end, args):
@@ -156,22 +164,49 @@ def load_index(input_path, pages_per_chunk=100):
     beg, cur = 0, 0
     page_count = 0
     chunks = []
-    for line in bz2.BZ2File(input_path):
-        cur += len(line)
-        if b'<' not in line:
-            continue
-        m = tag_patterns.search(line)
-        if not m:
-            continue
-        tag = m.group(2)
-        if tag == b'/siteinfo':
-            beg = cur
-        if tag == b'/page':
-            page_count += 1
-            if page_count % pages_per_chunk == 0:
-                chunks.append((beg, cur))
+    with bz2.BZ2File(input_path) as f:
+        for line in f:
+            cur += len(line)
+            if b'<' not in line:
+                continue
+            m = tag_patterns.search(line)
+            if not m:
+                continue
+            tag = m.group(2)
+            if tag == b'/siteinfo':
                 beg = cur
+            if tag == b'/page':
+                page_count += 1
+                if page_count % pages_per_chunk == 0:
+                    chunks.append((beg, cur))
+                    beg = cur
     return chunks
+
+
+def merge_index(intervals, n):
+    while len(intervals) > n:
+        # Find best interval to merge
+        best_idx = None
+        best_diff = float('inf')
+
+        for i in range(len(intervals) - 1):
+            # Check if the end of the current interval matches the beginning of the next
+            if intervals[i][1] == intervals[i+1][0]:
+                diff = intervals[i+1][1] - intervals[i][0]
+                if diff < best_diff:
+                    best_diff = diff
+                    best_idx = i
+
+        # If no merge candidate was found, break
+        if best_idx is None:
+            break
+
+        # Merge the intervals
+        merged_interval = [intervals[best_idx][0], intervals[best_idx+1][1]]
+        intervals[best_idx] = merged_interval
+        intervals.pop(best_idx + 1)
+
+    return intervals
 
 
 if __name__ == '__main__':
@@ -202,6 +237,9 @@ if __name__ == '__main__':
         with open(f'{args.input_path}.idx', 'w') as fw:
             json.dump(bz2f_index, fw)
     logger.info('# of chunks: %s' % len(bz2f_index))
+    if len(bz2f_index) > int(args.nworker):
+        bz2f_index = merge_index(bz2f_index, int(args.nworker))
+        logger.info('# of chunks after merging: %s' % len(bz2f_index))
 
     logger.info('processing...')
     pool = multiprocessing.Pool(processes=int(args.nworker))
