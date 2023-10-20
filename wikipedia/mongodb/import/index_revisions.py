@@ -44,20 +44,20 @@ if __name__ == '__main__':
     logger.info('indexing: ns')
     collection.create_index('ns')
 
-    logger.info('indexing: page_id')
-    collection.create_index('page_id')
+    logger.info('indexing: pid')
+    collection.create_index('pid')
 
-    logger.info('indexing: page_title')
-    collection.create_index('page_title')
+    logger.info('indexing: title')
+    collection.create_index('title')
 
-    logger.info('indexing: redirect')
-    collection.create_index('redirect', sparse=True)
+    # logger.info('indexing: redirect')
+    # collection.create_index('redirect', sparse=True)
 
-    logger.info('indexing: id')
-    collection.create_index('id')
+    logger.info('indexing: revid')
+    collection.create_index('revid')
 
-    logger.info('indexing: parentid')
-    collection.create_index('parentid', sparse=True)
+    logger.info('indexing: parent_revid')
+    collection.create_index('parent_revid', sparse=True)
 
     logger.info('indexing: ts')
     collection.create_index('ts')

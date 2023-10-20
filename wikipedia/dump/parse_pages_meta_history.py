@@ -64,9 +64,12 @@ def fast_iter(beg, end, input_path, args):
             logger.info(f"{os.getpid()}: parsing")
         elems = etree.iterparse(io.BytesIO(chunks), events=('end',), tag='page', huge_tree=True)
         for _, elem in elems:
+            # https://en.wikipedia.org/wiki/Wikipedia:Help_namespace
             ns = int(elem.find('ns').text)
             # if ns != '0':  # Main page (ns == 0) only
             #     continue
+            if ns in [4, 5]:
+                continue
 
             page_id = elem.find('id').text
             page_title = elem.find('title').text
@@ -82,19 +85,19 @@ def fast_iter(beg, end, input_path, args):
                 rev = {
                     '_chunk_id': f'{filename}_{beg}:{end}',
                     'ns': ns,
-                    'page_id': page_id,
-                    'page_title': page_title,
+                    'pid': page_id,
+                    'title': page_title,
                     'redirect': redirect,
-                    'id': i.find('id').text,
+                    'revid': i.find('id').text,
                     'ts': i.find('timestamp').text,
                     'idx': n,
                 }
-                rev['_id'] = f'{page_id}_{rev["id"]}_{rev["idx"]}'
+                rev['_id'] = f'{page_id}_{rev["revid"]}_{rev["idx"]}'
                 rev['ts'] = datetime.strptime(rev['ts'], "%Y-%m-%dT%H:%M:%SZ")
                 try:
-                    rev['parentid'] = i.find('parentid').text
+                    rev['parent_revid'] = i.find('parentid').text
                 except AttributeError:
-                    rev['parentid'] = None
+                    rev['parent_revid'] = None
                 try:
                     rev['contributor'] = {'id': i.find('contributor').find('id').text}
                 except AttributeError:
@@ -107,10 +110,7 @@ def fast_iter(beg, end, input_path, args):
                 if raw_markup is None:
                     raw_markup = ''
 
-                paragraphs = extractor.clean_text(raw_markup,
-                                                mark_headers=True,
-                                                expand_templates=False,
-                                                html_safe=False)
+                paragraphs = extractor.clean_text(raw_markup, mark_headers=True, expand_templates=False, html_safe=False)
                 plain_text, links, exlinks = replace_links('\n'.join(paragraphs))
 
                 rev['text'] = plain_text
@@ -225,17 +225,23 @@ if __name__ == '__main__':
                         help='Username (if authentication is enabled)')
     parser.add_argument('--password', '-p', default=None,
                         help='Password (if authentication is enabled)')
+    parser.add_argument('--index_range', default=None,
+                        help='Index range for debug, e.g., 0:1000')
     args = parser.parse_args()
 
-    if os.path.exists(f'{args.input_path}.idx'):
-        logger.info('loading index: %s.idx' % args.input_path)
-        with open(f'{args.input_path}.idx', 'r') as f:
-            bz2f_index = json.load(f)
+    if args.index_range:
+        beg, end = args.index_range.split(':')
+        bz2f_index = [[int(beg), int(end)]]
     else:
-        logger.info('loading index: %s' % args.input_path)
-        bz2f_index = load_index(args.input_path)
-        with open(f'{args.input_path}.idx', 'w') as fw:
-            json.dump(bz2f_index, fw)
+        if os.path.exists(f'{args.input_path}.idx'):
+            logger.info('loading index: %s.idx' % args.input_path)
+            with open(f'{args.input_path}.idx', 'r') as f:
+                bz2f_index = json.load(f)
+        else:
+            logger.info('loading index: %s' % args.input_path)
+            bz2f_index = load_index(args.input_path)
+            with open(f'{args.input_path}.idx', 'w') as fw:
+                json.dump(bz2f_index, fw)
     logger.info('# of chunks: %s' % len(bz2f_index))
     if len(bz2f_index) > int(args.nworker):
         bz2f_index = merge_index(bz2f_index, int(args.nworker))
