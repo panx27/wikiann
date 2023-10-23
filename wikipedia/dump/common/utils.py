@@ -98,3 +98,12 @@ def extract_infobox(text):
             if left == right:
                 return result
     return None
+
+
+def cleanup(text):
+    # Remove empty parenthesis
+    if '(' in text and ')' in text:
+        text = re.sub(r'\s*\([^\w]*\)', '', text)
+    if '（' in text and '）' in text:
+        text = re.sub(r'\s*\（[^\w]*\）', '', text)
+    return text

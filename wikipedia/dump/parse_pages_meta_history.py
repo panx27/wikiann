@@ -1,6 +1,6 @@
-import sys
 import os
 import io
+import sys
 import re
 import bz2
 import json
@@ -18,12 +18,13 @@ from pymongo.errors import DuplicateKeyError
 from bson import json_util
 
 from common import wikimarkup
-from common.extract import Extractor
+from common.wikiextractor.wikiextractor.extract import Extractor
 from common.utils import (
     replace_links,
     extract_sections,
     extract_categories,
-    extract_infobox
+    extract_infobox,
+    cleanup
 )
 
 
@@ -66,10 +67,6 @@ def fast_iter(beg, end, input_path, args):
         for _, elem in elems:
             # https://en.wikipedia.org/wiki/Wikipedia:Help_namespace
             ns = int(elem.find('ns').text)
-            # if ns != '0':  # Main page (ns == 0) only
-            #     continue
-            if ns in [4, 5]:
-                continue
 
             page_id = elem.find('id').text
             page_title = elem.find('title').text
@@ -110,21 +107,20 @@ def fast_iter(beg, end, input_path, args):
                 if raw_markup is None:
                     raw_markup = ''
 
-                paragraphs = extractor.clean_text(raw_markup, mark_headers=True, expand_templates=False, html_safe=False)
-                plain_text, links, exlinks = replace_links('\n'.join(paragraphs))
+                rev['raw'] = raw_markup
+                if ns == 0:
+                    rev['text'] = cleanup('\n'.join(extractor.clean_text(raw_markup)))
+                else:
+                    rev['text'] = None
 
-                rev['text'] = plain_text
-                rev['links'] = links
-                rev['infobox'] = extract_infobox(raw_markup)
-                rev['sections'] = extract_sections(plain_text)
-                rev['categories'] = extract_categories(raw_markup)
-                rev['external_links'] = exlinks
-
+                if args.verbose:
+                    logger.info(f"{os.getpid()}: {rev['title']} {rev['revid']} {rev['idx']}")
                 res.append(rev)
+
+            res[-1]['idx'] = -1
 
             try:
                 r = collection.insert_many(res)
-                # logger.info(f"{os.getpid()}: {str(r)}")
             except UnicodeEncodeError:
                 res = json.loads(
                     json.dumps(
