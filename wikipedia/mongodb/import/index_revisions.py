@@ -38,9 +38,6 @@ if __name__ == '__main__':
 
     collection = client[db_name][collection_name]
 
-    # logger.info('indexing: _chunk_id')
-    # collection.create_index('_chunk_id')
-
     logger.info('indexing: ns')
     collection.create_index('ns')
 
@@ -50,14 +47,8 @@ if __name__ == '__main__':
     logger.info('indexing: title')
     collection.create_index('title')
 
-    # logger.info('indexing: redirect')
-    # collection.create_index('redirect', sparse=True)
-
     logger.info('indexing: revid')
     collection.create_index('revid')
-
-    logger.info('indexing: parent_revid')
-    collection.create_index('parent_revid', sparse=True)
 
     logger.info('indexing: ts')
     collection.create_index('ts')
@@ -65,8 +56,40 @@ if __name__ == '__main__':
     logger.info('indexing: idx')
     collection.create_index('idx')
 
+    logger.info('indexing: parent_revid')
+    key = [('parent_revid', 1)]
+    pfe = {'parent_revid': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
+
     logger.info('indexing: comment')
-    collection.create_index([('comment', 'text')])
+    key = [('comment', 'text')]
+    pfe = {'comment': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
+
+    logger.info('indexing: last')
+    key = [('last', 1)]
+    pfe = {'last': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
+
+    logger.info('indexing: ns: 1, last: 1')
+    key = [('ns', 1), ('last', 1)]
+    pfe = {'last': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
+
+    logger.info('indexing: title: 1, last: 1')
+    key = [('title', 1), ('last', 1)]
+    pfe = {'last': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
+
+    logger.info('indexing: ts: 1, last: 1')
+    key = [('ts', 1), ('last', 1)]
+    pfe = {'last': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
+
+    logger.info('indexing: contributor.name')
+    key = [('contributor.name', 1)]
+    pfe = {'contributor.name': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
 
     client.close()
     logger.info('done.')

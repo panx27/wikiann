@@ -70,11 +70,6 @@ def fast_iter(beg, end, input_path, args):
 
             page_id = elem.find('id').text
             page_title = elem.find('title').text
-            # Redirect
-            if elem.find('redirect') is not None:
-                redirect = elem.find('redirect').attrib['title']
-            else:
-                redirect = None
 
             extractor = Extractor(page_id, 0, '', page_title, [])
             res = []
@@ -84,7 +79,6 @@ def fast_iter(beg, end, input_path, args):
                     'ns': ns,
                     'pid': page_id,
                     'title': page_title,
-                    'redirect': redirect,
                     'revid': i.find('id').text,
                     'ts': i.find('timestamp').text,
                     'idx': n,
@@ -92,17 +86,24 @@ def fast_iter(beg, end, input_path, args):
                 rev['_id'] = f'{page_id}_{rev["revid"]}_{rev["idx"]}'
                 rev['ts'] = datetime.strptime(rev['ts'], "%Y-%m-%dT%H:%M:%SZ")
                 try:
+                    rev['redirect'] = elem.find('redirect').attrib['title']
+                except AttributeError:
+                    pass
+                try:
                     rev['parent_revid'] = i.find('parentid').text
                 except AttributeError:
-                    rev['parent_revid'] = None
+                    pass
                 try:
-                    rev['contributor'] = {'id': i.find('contributor').find('id').text}
+                    rev['contributor'] = {
+                        'id': i.find('contributor').find('id').text,
+                        'name': i.find('contributor').find('username').text
+                    }
                 except AttributeError:
-                    rev['contributor'] = None
+                    pass
                 try:
                     rev['comment'] = i.find('comment').text
                 except AttributeError:
-                    rev['comment'] = None
+                    pass
                 raw_markup = i.find('text').text
                 if raw_markup is None:
                     raw_markup = ''
@@ -111,13 +112,14 @@ def fast_iter(beg, end, input_path, args):
                 if ns == 0:
                     rev['text'] = cleanup('\n'.join(extractor.clean_text(raw_markup)))
                 else:
-                    rev['text'] = None
+                    rev['text'] = ''
 
                 if args.verbose:
                     logger.info(f"{os.getpid()}: {rev['title']} {rev['revid']} {rev['idx']}")
                 res.append(rev)
 
-            res[-1]['idx'] = -1
+            res[0]['first'] = True
+            res[-1]['last'] = True
 
             try:
                 r = collection.insert_many(res)
