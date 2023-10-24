@@ -18,7 +18,6 @@ from common.utils import replace_links
 from common.utils import extract_sections, extract_categories, extract_infobox
 
 
-
 logger = logging.getLogger()
 logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
