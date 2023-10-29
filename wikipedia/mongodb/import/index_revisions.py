@@ -56,14 +56,14 @@ if __name__ == '__main__':
     logger.info('indexing: idx')
     collection.create_index('idx')
 
+    logger.info('indexing: comment')
+    key = [('comment', 1)]
+    pfe = {'comment': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
+
     logger.info('indexing: parent_revid')
     key = [('parent_revid', 1)]
     pfe = {'parent_revid': {'$exists': True}}
-    collection.create_index(key, partialFilterExpression=pfe)
-
-    logger.info('indexing: comment')
-    key = [('comment', 'text')]
-    pfe = {'comment': {'$exists': True}}
     collection.create_index(key, partialFilterExpression=pfe)
 
     logger.info('indexing: last')
