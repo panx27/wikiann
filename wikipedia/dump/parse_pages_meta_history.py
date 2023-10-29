@@ -32,12 +32,12 @@ logger = logging.getLogger()
 logging.basicConfig(format='%(asctime)s: %(levelname)s: %(message)s')
 logging.root.setLevel(level=logging.INFO)
 
-disambiguation_page_patterns = [
-    re.compile(r'({{disambiguation.*?}})', re.I),
-    re.compile(r'({{.*?disambiguation}})', re.I),
-    re.compile(r'({{hndis.*?}})', re.I)
-]
-tag_patterns = re.compile(b'(.*?)<(/?\w+)[^>]*>(?:([^<]*)(<.*?>)?)?')
+# disambiguation_page_patterns = [
+#     re.compile(r'({{disambiguation.*?}})', re.I),
+#     re.compile(r'({{.*?disambiguation}})', re.I),
+#     re.compile(r'({{hndis.*?}})', re.I)
+# ]
+
 
 
 def fast_iter(beg, end, input_path, args):
@@ -149,19 +149,50 @@ def fast_iter(beg, end, input_path, args):
         logger.info(f"{os.getpid()}: done.")
 
 
-def process(beg, end, args):
+def process(beg, end, args, max_size=5e10):
+    if end - beg > max_size:
+        logger.warning(f"{os.getpid()}: Too large chunk: [{beg}, {end}] , skip")
+        return
     try:
         fast_iter(beg, end, args.input_path, args)
     except Exception as e:
         logger.error('unexpected error')
-        logger.error(args.input_path, beg, end)
+        logger.error(f'{os.getpid()}: {args.input_path}, [{beg}, {end}]')
         logger.exception(e)
 
 
-def load_index(input_path, pages_per_chunk=100):
+# def build_index(input_path, max_page=1e4, max_size=1e9):
+#     tag_patterns = re.compile(b'(.*?)<(/?\w+)[^>]*>(?:([^<]*)(<.*?>)?)?')
+
+#     beg, cur = 0, 0
+#     page_count = 0
+#     chunks = []
+#     with bz2.BZ2File(input_path) as f:
+#         for line in f:
+#             cur += len(line)
+#             if b'<' not in line:
+#                 continue
+#             m = tag_patterns.search(line)
+#             if not m:
+#                 continue
+#             tag = m.group(2)
+#             if tag == b'/siteinfo':
+#                 beg = cur
+#             if tag == b'/page':
+#                 page_count += 1
+#                 if page_count % max_page == 0 or cur - beg > max_size:
+#                     chunks.append((beg, cur))
+#                     beg = cur
+#     if beg != cur:
+#         chunks.append((beg, cur))
+#     return chunks
+
+
+def get_intervals(input_path):
+    tag_patterns = re.compile(b'(.*?)<(/?\w+)[^>]*>(?:([^<]*)(<.*?>)?)?')
+
     beg, cur = 0, 0
-    page_count = 0
-    chunks = []
+    pages = []
     with bz2.BZ2File(input_path) as f:
         for line in f:
             cur += len(line)
@@ -174,37 +205,66 @@ def load_index(input_path, pages_per_chunk=100):
             if tag == b'/siteinfo':
                 beg = cur
             if tag == b'/page':
-                page_count += 1
-                if page_count % pages_per_chunk == 0:
-                    chunks.append((beg, cur))
-                    beg = cur
+                pages.append((beg, cur))
+                beg = cur
+    return pages
+
+
+def build_index(intervals, max_size=1e8):
+    # Sort the intervals based on the start value
+    intervals.sort(key=lambda x: x[0])
+
+    # Initialize the merged start and end with the first position
+    merged_start, merged_end = intervals[0]
+
+    chunks = []
+
+    # Iterate over the intervals from the second one
+    for start, end in intervals[1:]:
+        # If the current start is less than the merged end, they overlap
+        if start <= merged_end:
+            # If merging won't exceed max_size, then merge
+            if end - merged_start <= max_size:
+                merged_end = end
+            # If merging exceeds max_size, push the merged interval to chunks and re-initialize
+            else:
+                chunks.append([merged_start, merged_end])
+                merged_start, merged_end = start, end
+        # If they don't overlap, push the merged interval to chunks and re-initialize
+        else:
+            chunks.append([merged_start, merged_end])
+            merged_start, merged_end = start, end
+
+    # Add the last merged interval
+    chunks.append([merged_start, merged_end])
+
     return chunks
 
 
-def merge_index(intervals, n):
-    while len(intervals) > n:
-        # Find best interval to merge
-        best_idx = None
-        best_diff = float('inf')
+# def merge_index(intervals, n):
+#     while len(intervals) > n:
+#         # Find best interval to merge
+#         best_idx = None
+#         best_diff = float('inf')
 
-        for i in range(len(intervals) - 1):
-            # Check if the end of the current interval matches the beginning of the next
-            if intervals[i][1] == intervals[i+1][0]:
-                diff = intervals[i+1][1] - intervals[i][0]
-                if diff < best_diff:
-                    best_diff = diff
-                    best_idx = i
+#         for i in range(len(intervals) - 1):
+#             # Check if the end of the current interval matches the beginning of the next
+#             if intervals[i][1] == intervals[i+1][0]:
+#                 diff = intervals[i+1][1] - intervals[i][0]
+#                 if diff < best_diff:
+#                     best_diff = diff
+#                     best_idx = i
 
-        # If no merge candidate was found, break
-        if best_idx is None:
-            break
+#         # If no merge candidate was found, break
+#         if best_idx is None:
+#             break
 
-        # Merge the intervals
-        merged_interval = [intervals[best_idx][0], intervals[best_idx+1][1]]
-        intervals[best_idx] = merged_interval
-        intervals.pop(best_idx + 1)
+#         # Merge the intervals
+#         merged_interval = [intervals[best_idx][0], intervals[best_idx+1][1]]
+#         intervals[best_idx] = merged_interval
+#         intervals.pop(best_idx + 1)
 
-    return intervals
+#     return intervals
 
 
 if __name__ == '__main__':
@@ -231,19 +291,35 @@ if __name__ == '__main__':
         beg, end = args.index_range.split(':')
         bz2f_index = [[int(beg), int(end)]]
     else:
-        if os.path.exists(f'{args.input_path}.idx'):
-            logger.info('loading index: %s.idx' % args.input_path)
-            with open(f'{args.input_path}.idx', 'r') as f:
-                bz2f_index = json.load(f)
+        if os.path.exists(f'{args.input_path}.pos'):
+            logger.info('loading intervals: %s.pos' % args.input_path)
+            with open(f'{args.input_path}.pos', 'r') as f:
+                bz2f_pos = json.load(f)
         else:
-            logger.info('loading index: %s' % args.input_path)
-            bz2f_index = load_index(args.input_path)
-            with open(f'{args.input_path}.idx', 'w') as fw:
-                json.dump(bz2f_index, fw)
+            logger.info('finding page intervals: %s' % args.input_path)
+            bz2f_pos = get_intervals(args.input_path)
+            with open(f'{args.input_path}.pos', 'w') as fw:
+                json.dump(bz2f_pos, fw)
+        logger.info('building index')
+        bz2f_index = build_index(bz2f_pos)
+
+        # if os.path.exists(f'{args.input_path}.idx'):
+        #     logger.info('loading index: %s.idx' % args.input_path)
+        #     with open(f'{args.input_path}.idx', 'r') as f:
+        #         bz2f_index = json.load(f)
+        # else:
+        #     logger.info('finding position: %s' % args.input_path)
+        #     bz2f_pos = get_position(args.input_path)
+        #     with open(f'{args.input_path}.pos', 'w') as fw:
+        #         json.dump(bz2f_index, fw)
+        #     logger.info('building index: %s' % args.input_path)
+        #     bz2f_index = build_index(args.input_path)
+        #     with open(f'{args.input_path}.idx', 'w') as fw:
+        #         json.dump(bz2f_index, fw)
     logger.info('# of chunks: %s' % len(bz2f_index))
-    if len(bz2f_index) > int(args.nworker):
-        bz2f_index = merge_index(bz2f_index, int(args.nworker))
-        logger.info('# of chunks after merging: %s' % len(bz2f_index))
+    # if len(bz2f_index) > int(args.nworker):
+    #     bz2f_index = merge_index(bz2f_index, int(args.nworker))
+    #     logger.info('# of chunks after merging: %s' % len(bz2f_index))
 
     logger.info('processing...')
     pool = multiprocessing.Pool(processes=int(args.nworker))
