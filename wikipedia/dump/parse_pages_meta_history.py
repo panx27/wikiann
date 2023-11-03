@@ -139,7 +139,9 @@ def fast_iter(beg, end, input_path, args):
                         pass
                     except UnicodeEncodeError:
                         logger.error(f"Still get UnicodeEncodeError: {i['_chunk_id']} {i['_id']}")
-
+            except Exception as e:
+                logger.error(f"Still get unexcepted error: {i['_chunk_id']} {i['_id']}")
+                logger.exception(e)
             elem.clear()
             while elem.getprevious() is not None:
                 del elem.getparent()[0]
@@ -151,13 +153,13 @@ def fast_iter(beg, end, input_path, args):
 
 def process(beg, end, args, max_size=5e10):
     if end - beg > max_size:
-        logger.warning(f"{os.getpid()}: Too large chunk: [{beg}, {end}] , skip")
+        logger.warning(f"Too large chunk: [{beg}, {end}] , skip")
         return
     try:
         fast_iter(beg, end, args.input_path, args)
     except Exception as e:
         logger.error('unexpected error')
-        logger.error(f'{os.getpid()}: {args.input_path}, [{beg}, {end}]')
+        logger.error(f'{args.input_path}, [{beg}, {end}]')
         logger.exception(e)
 
 
