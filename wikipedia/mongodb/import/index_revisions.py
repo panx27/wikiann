@@ -71,11 +71,6 @@ if __name__ == '__main__':
     pfe = {'last': {'$exists': True}}
     collection.create_index(key, partialFilterExpression=pfe)
 
-    logger.info('indexing: ns: 1, last: 1')
-    key = [('ns', 1), ('last', 1)]
-    pfe = {'last': {'$exists': True}}
-    collection.create_index(key, partialFilterExpression=pfe)
-
     logger.info('indexing: title: 1, last: 1')
     key = [('title', 1), ('last', 1)]
     pfe = {'last': {'$exists': True}}
@@ -84,6 +79,11 @@ if __name__ == '__main__':
     logger.info('indexing: ts: 1, last: 1')
     key = [('ts', 1), ('last', 1)]
     pfe = {'last': {'$exists': True}}
+    collection.create_index(key, partialFilterExpression=pfe)
+
+    logger.info('indexing: ts: 1, first: 1')
+    key = [('ts', 1), ('first', 1)]
+    pfe = {'first': {'$exists': True}}
     collection.create_index(key, partialFilterExpression=pfe)
 
     logger.info('indexing: contributor.name')
