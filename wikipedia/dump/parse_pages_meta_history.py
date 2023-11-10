@@ -70,6 +70,10 @@ def fast_iter(beg, end, input_path, args):
 
             page_id = elem.find('id').text
             page_title = elem.find('title').text
+            try:
+                redirect = elem.find('redirect').attrib['title']
+            except AttributeError:
+                redirect = None
 
             extractor = Extractor(page_id, 0, '', page_title, [])
             res = []
@@ -85,10 +89,8 @@ def fast_iter(beg, end, input_path, args):
                 }
                 rev['_id'] = f'{page_id}_{rev["revid"]}_{rev["idx"]}'
                 rev['ts'] = datetime.strptime(rev['ts'], "%Y-%m-%dT%H:%M:%SZ")
-                try:
-                    rev['redirect'] = elem.find('redirect').attrib['title']
-                except AttributeError:
-                    pass
+                if redirect:
+                    rev['redirect'] = redirect
                 try:
                     rev['parent_revid'] = i.find('parentid').text
                 except AttributeError:
